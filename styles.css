@@ -2524,6 +2524,25 @@ body.nav-open { overflow: hidden; }
 
 .co-total-row strong { font-family: var(--serif); font-size: 1.35rem; }
 
+/* Lucky member ka 15% OFF — discount row (green) + net total */
+.co-discount-row strong {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  color: #1f7a4d;
+}
+
+.co-net-row strong {
+  font-family: var(--serif);
+  font-size: 1.45rem;
+  color: var(--green-900);
+}
+
+.co-discount-row[hidden],
+.co-net-row[hidden] { display: none !important; }
+
+.co-discount-row.show,
+.co-net-row.show { display: flex; }
+
 /* Delivery block */
 .co-delivery {
   background: var(--beige-200);
