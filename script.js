@@ -76,7 +76,7 @@ function renderProductGrids() {
     else if (filter === 'trousers') items = PRODUCTS.filter((p) => inLoc(p, 'trousers'));
     else if (filter === 'outfits') items = PRODUCTS.filter((p) => inLoc(p, 'outfits'));
     else if (filter === 'collections') items = PRODUCTS.filter((p) => inLoc(p, 'collections'));
-    else if (filter === 'featured') items = PRODUCTS.filter((p) => inLoc(p, 'home'));
+    else if (filter === 'featured') items = PRODUCTS.filter((p) => inLoc(p, 'new'));
     else if (filter === 'all') items = PRODUCTS.filter((p) => inLoc(p, 'collections'));
     if (!items.length) {
       grid.innerHTML = '<p class="grid-empty">Fresh styles are on the way — new pieces drop very soon. Stay tuned! ✨</p>';
@@ -102,14 +102,9 @@ function renderProductGrids() {
   });
 }
 renderProductGrids();
-/* autoco (test/demo) support */
-if (new URLSearchParams(location.search).has('autoco')) {
-  if (!cartItems.size && PRODUCTS[0]) {
-    addToCart(0, { size: 'M', colorName: 'Green' });
-  }
-  openCheckout();
-  goCoStep(1);
-}
+
+/* autoco (test/demo) support — neeche file ke end mein bind hota hai
+   (yahan nahi: tab tak cartItems/checkout define nahi hote = TDZ error) */
 
 /* ---------- Home content ----------
    Homepage ki collection cards, editorial text waghera ab index.html mein
@@ -898,6 +893,12 @@ const CO_STEPS = ['Items', 'Contact', 'Address', 'Confirm'];
    Inko checkout mein premium lucky-draw feel milti hai aur
    WhatsApp message mein lucky-draw + pre-order wording hoti hai.
 
+   SAATH HI: lucky members ke total bill par EXTRA 15% OFF lagta
+   hai — confirm step par discount row dikhti hai aur amount
+   actually cut ho kar NET TOTAL show hota hai (sirf likha nahi,
+   calculation bhi hoti hai). NF0021 se aage sab normal — koi
+   discount nahi.
+
    NF0020 ke BAAD sab kuch NORMAL ho jata hai — na site par
    pre-order wording, na WhatsApp message mein. Kuch badalne
    ki zaroorat nahi — yeh system khud order number dekh kar
@@ -905,10 +906,14 @@ const CO_STEPS = ['Items', 'Contact', 'Address', 'Confirm'];
    ========================================================= */
 const NF_LUCKY_FIRST = 1;   // pehla lucky number
 const NF_LUCKY_LAST = 20;   // aakhri lucky number (iske baad normal)
+const NF_LUCKY_DISCOUNT_PCT = 15; // lucky members ko total bill par EXTRA % off
 
 function luckyTier(orderNum) {
-  const n = Number(orderNum);
-  return Number.isFinite(n) && n >= NF_LUCKY_FIRST && n <= NF_LUCKY_LAST;
+  /* 'NF0001' (string) aur 1 (number) dono handle karo — pehle
+     String('NF0001') se Number() NaN ban tha aur lucky check
+     kabhi true nahi hota (WhatsApp/success lines maray thin). */
+  const n = Number(String(orderNum == null ? '' : orderNum).replace(/\D/g, ''));
+  return n >= NF_LUCKY_FIRST && n <= NF_LUCKY_LAST;
 }
 
 /* checkout.nextNumber = agla order number (checkout kholte waqt
@@ -963,7 +968,7 @@ function buildCheckout() {
           <span class="co-lucky-icon">👑</span>
           <div class="co-lucky-copy">
             <strong>VIP Pre-Order Access</strong>
-            <p>You're one of the first <b>20 pre-order customers</b> — enjoy <b>VIP priority</b> and exclusive perks on this limited pre-order batch.</p>
+            <p>You're one of the first <b>20 pre-order customers</b> — enjoy <b>VIP priority</b>, an <b>EXTRA 15% OFF</b> on your total bill and exclusive perks on this limited pre-order batch.</p>
           </div>
         </div>
         <div class="co-steps" data-co-steps></div>
@@ -976,6 +981,12 @@ function buildCheckout() {
             <h4 class="co-slide-title">Item Summary</h4>
             <ul class="co-items" data-co-items></ul>
             <div class="co-total-row"><span>Subtotal</span><strong data-co-subtotal>Rs. 0</strong></div>
+            <div class="co-total-row co-discount-row" data-co-discount-row hidden>
+              <span>Lucky Member Discount (15%)</span><strong data-co-discount>- Rs. 0</strong>
+            </div>
+            <div class="co-total-row co-net-row" data-co-net-row hidden>
+              <span>Net Total</span><strong data-co-net>Rs. 0</strong>
+            </div>
           </section>
 
           <section class="co-slide" data-co-slide="1">
@@ -1034,7 +1045,12 @@ function buildCheckout() {
               </div>
               <p class="co-del-note">Delivery charges will be shared &amp; submitted in advance after order confirmation from our team on WhatsApp.</p>
             </div>
-            <div class="co-total-row"><span>Total</span><strong data-co-total>Rs. 0</strong></div>
+            <div class="co-total-row co-discount-row" data-co-discount-row hidden>
+              <span>Lucky Member Discount (15%)</span><strong data-co-discount>- Rs. 0</strong>
+            </div>
+            <div class="co-total-row co-net-row">
+              <span>Total</span><strong data-co-net>Rs. 0</strong>
+            </div>
           </section>
         </div>
       </div>
@@ -1060,7 +1076,7 @@ function buildCheckout() {
           </svg>
           <p>Order Confirmed</p>
           <p class="co-tick-ref" data-co-tick-ref style="display:none">Order <span>NF0001</span></p>
-          <p class="co-tick-lucky" data-co-tick-lucky style="display:none">👑 <b>VIP Pre-Order</b> unlocked — stay tuned on WhatsApp!</p>
+          <p class="co-tick-lucky" data-co-tick-lucky style="display:none">👑 <b>VIP Pre-Order</b> unlocked — extra <b>15% OFF</b> applied. Stay tuned on WhatsApp!</p>
         </div>
       </div>
     </section>`;
@@ -1141,6 +1157,13 @@ function applyCheckoutMode() {
 
   const tickLucky = q('[data-co-tick-lucky]');
   if (tickLucky) tickLucky.style.display = lucky ? 'block' : 'none';
+
+  /* Lucky members (NF0001–NF0020) ko bill par EXTRA 15% OFF milta
+     hai — sirf unhi ke liye discount/net-total rows dikhao, baaki
+     sab ke liye chhupi rahein. Amount renderCoSummary() se aata hai. */
+  document.querySelectorAll('[data-co-discount-row], [data-co-net-row]').forEach((el) => {
+    el.classList.toggle('show', lucky);
+  });
 }
 
 /* Agla order number sirf PEEK karo (increment nahi) — taake checkout
@@ -1197,8 +1220,26 @@ const FREE_DELIVERY_MIN = 5000;
 function renderCoSummary() {
   const items = [...cartItems.values()];
   const subtotal = items.reduce((a, b) => a + b.qty * b.price, 0);
+
+  /* Lucky members (pehle 20 orders) = EXTRA 15% OFF — bill par
+     actually deduct hota hai (sirf label nahi). Net total =
+     subtotal − 15%. Delivery charges ALAG cheez hain — woh order
+     confirm hone ke baad WhatsApp par bataye jate hain (pehle ki tarah). */
+  const lucky = luckyTier(checkout.nextNumber);
+  const discount = lucky ? Math.round(subtotal * NF_LUCKY_DISCOUNT_PCT / 100) : 0;
+  const net = subtotal - discount;
+
   document.querySelector('[data-co-subtotal]').textContent = formatPrice(subtotal);
-  document.querySelector('[data-co-total]').textContent = formatPrice(subtotal);
+
+  document.querySelectorAll('[data-co-discount]').forEach((el) => {
+    el.textContent = '-' + CURRENCY + discount.toLocaleString();
+  });
+
+  /* Total = net (discount ke baad). Confirm slide ka [data-co-net]
+     aur Items slide ka [data-co-net-row] dono isi se bharte hain. */
+  document.querySelectorAll('[data-co-net], [data-co-total]').forEach((el) => {
+    el.textContent = formatPrice(net);
+  });
 
   /* Bill 5,000+ ho to Confirm slide par premium FREE-delivery highlight */
   const unlocked = subtotal >= FREE_DELIVERY_MIN;
@@ -1340,6 +1381,7 @@ function openCheckout() {
     if (!panel || !panel.classList.contains('open')) return; // user ne band kar diya
     checkout.nextNumber = num;
     applyCheckoutMode();
+    renderCoSummary(); // number mil gaya — discount/net-total recalculate
   }).catch(() => {});
 }
 
@@ -1361,13 +1403,15 @@ function closeCheckout() {
    service down) to browser apna LOCAL counter use karta hai taake order
    kabhi na ruke. */
 
-/* Nayi shuruaat: key ka naam badal diya — purane devices par bhi
-   counter 0 (NF0001) se fresh start hoga. */
-const NF_ORDER_KEY = 'nf-order-seq-fallback-v2';
+/* Nayi shuruaat (reset se 0001): key ke naam badal diye — purane
+   devices par bhi local counter 0 (NF0001) se fresh start hoga aur
+   sab devices wapas isi standard counter object par aayenge jo
+   online 0 par reset kiya ja chuka hai. */
+const NF_ORDER_KEY = 'nf-order-seq-fallback-v3';
 const ORDER_SEQ_NAME = 'nf-order-seq';
 const ORDER_SEQ_API = 'https://api.restful-api.dev/objects';
-const ORDER_SEQ_ID = 'ff808181a09d98f701a0d3e0820e0858'; // counter object ki ID
-const ORDER_SEQ_LIVE_ID_KEY = 'nf-order-seq-live-id';
+const ORDER_SEQ_ID = 'ff808181a09d98f701a0d3e0820e0858'; // counter object ki ID (seq = 0)
+const ORDER_SEQ_LIVE_ID_KEY = 'nf-order-seq-live-id-v2';
 
 function localOrderNumber() {
   let last = 0;
@@ -1523,6 +1567,16 @@ function buildWhatsAppOrderMessage(orderNumber, items) {
   });
   lines.push('');
   lines.push(`*Subtotal:* ${formatPrice(subtotal)}`);
+
+  /* Lucky members (NF0001–NF0020) ka 15% OFF — WhatsApp bill mein
+     bhi discount line + net total dikhao taake owner ko clear rahe */
+  const luckyBill = luckyTier(orderNumber);
+  const disc = luckyBill ? Math.round(subtotal * NF_LUCKY_DISCOUNT_PCT / 100) : 0;
+  const netBill = subtotal - disc;
+  if (luckyBill) {
+    lines.push(`*VIP Discount (15% off):* -${formatPrice(disc)}`);
+    lines.push(`*Net Total (after discount):* ${formatPrice(netBill)}`);
+  }
   lines.push('');
   if (luckyTier(orderNumber)) {
     lines.push('👑 *VIP BONUS:* Exclusive priority on your pre-order — full details will be shared on this chat.');
@@ -1623,6 +1677,9 @@ function restoreCart() {
 }
 
 function showResumePopup() {
+  /* ?autoco (demo) ho to resume-popup nahi — warna auto-khula
+     checkout ke upar chala jata tha */
+  if (new URLSearchParams(location.search).has('autoco')) return;
   if (cartItems.size === 0 || document.querySelector('[data-rs]')) return;
 
   const wrap = document.createElement('div');
@@ -1669,3 +1726,15 @@ window.addEventListener('load', showResumePopup);
 document.querySelectorAll('[data-checkout]').forEach((btn) => {
   btn.addEventListener('click', openCheckout);
 });
+
+/* autoco (test/demo) — cart auto-bharo + checkout kholo.
+   Ab YAHAN hai (file ke end) — pehle shuru mein tha jahan cartItems/
+   checkout abhi tak define nahi hote the = ReferenceError (TDZ).
+   Use: index.html?autoco */
+if (new URLSearchParams(location.search).has('autoco')) {
+  if (!cartItems.size && PRODUCTS[0]) {
+    addToCart(0, { size: 'M', colorName: 'Green' });
+  }
+  openCheckout();
+  goCoStep(1);
+}
