@@ -3,21 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script>
-    /* Reload/refresh = foran HOME page (index.html).
-       Sirf 'reload' par chalta hai — normal visit, link ya back/forward
-       par kuch nahi hota. Home par ho to wahi rehne dete hain. */
-    (function () {
-      try {
-        var t = (performance.getEntriesByType('navigation')[0] || {}).type || '';
-        if (t !== 'reload') return;
-        var here = (location.pathname.split('/').pop() || '').toLowerCase();
-        if (here !== '' && here !== 'index.html' && here !== 'index.htm') {
-          location.replace('index.html');
-        }
-      } catch (e) { /* ignore */ }
-    })();
-  </script>
   <title>New Arrivals — North Fits</title>
   <meta name="description" content="Fresh drops from North Fits — the newest trendy outfits and tailored trousers, straight into your wardrobe." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
