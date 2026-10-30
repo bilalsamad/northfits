@@ -1,5 +1,27 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
     <url>
         <loc>https://northfits.vercel.app/</loc>
     </url>
+
+    <url>
+        <loc>https://northfits.vercel.app/about.html</loc>
+    </url>
+
+    <url>
+        <loc>https://northfits.vercel.app/arrivals.html</loc>
+    </url>
+
+    <url>
+        <loc>https://northfits.vercel.app/collections.html</loc>
+    </url>
+
+    <url>
+        <loc>https://northfits.vercel.app/outfits.html</loc>
+    </url>
+
+    <url>
+        <loc>https://northfits.vercel.app/trousers.html</loc>
+    </url>
+
 </urlset>
