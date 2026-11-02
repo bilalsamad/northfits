@@ -163,7 +163,7 @@ const NF_PRODUCTS = [
   {
     name: 'Premium Fall Trouser',
     category: 'Trousers',
-    price: 1850,
+    price: 1999,
     visual: 'visual-fabric',
     colors: [
       { name: 'Light Grey', hex: '#D3D3D3' },
