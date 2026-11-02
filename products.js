@@ -179,4 +179,23 @@ const NF_PRODUCTS = [
       'uploads/product7-2.png'
     ]
   }
+    {
+    name: 'Premium Fall Trouser',
+    category: 'Trousers',
+    price: 1999,
+    visual: 'visual-fabric',
+    colors: [
+      { name: 'Light Grey', hex: '#D3D3D3' },
+      { name: 'Black', hex: '#1C1C1C' },
+      { name: 'Dark Grey', hex: '#4A4A4A' }
+    ],
+    sizes: ['M', 'L', 'XL'],
+    new: true,
+    desc: 'Experience effortless style with a smooth finish, lightweight comfort, and a natural fall. Perfect for everyday wear with a clean, modern look.',
+    locations: ['new', 'trousers', 'collections'],
+    images: [
+      'uploads/product7-1.png',
+      'uploads/product7-2.png'
+    ]
+  }
 ];
