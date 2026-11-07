@@ -1533,11 +1533,14 @@ async function sendOrderEmail(orderNumber, items) {
   const message = buildWhatsAppOrderMessage(orderNumber, items);
 
   /* 1) Web3Forms (primary) — key maujood ho to pehle wohi
-        try hota hai, fail ho to foran agla (FormSubmit) chalta hai */
+        try hota hai, fail ho to foran agla (FormSubmit) chalta hai.
+        Har step console mein log hota hai taake masla aasani
+        se trace ho sake (F12 → Console). */
   if (WEB3FORMS_KEY) {
     const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const t = ctrl ? setTimeout(() => ctrl.abort(), 10000) : null;
     try {
+      console.log('[NF Order] Web3Forms bhej raha hai…');
       const res = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -1552,9 +1555,12 @@ async function sendOrderEmail(orderNumber, items) {
       });
       if (res.ok) {
         const j = await res.json().catch(() => null);
+        console.log('[NF Order] Web3Forms response:', j);
         if (j && j.success) return true;
+      } else {
+        console.warn('[NF Order] Web3Forms fail — status', res.status);
       }
-    } catch (e) { /* Web3Forms fail — FormSubmit fallback */ }
+    } catch (e) { console.warn('[NF Order] Web3Forms error:', e.message); /* Web3Forms fail — FormSubmit fallback */ }
     finally {
       if (t) clearTimeout(t);
     }
@@ -1576,7 +1582,11 @@ async function sendOrderEmail(orderNumber, items) {
       }),
       signal: ctrl ? ctrl.signal : undefined
     });
-    if (!res.ok) throw new Error('email send failed: ' + res.status);
+    if (!res.ok) {
+      console.warn('[NF Order] FormSubmit fail — status', res.status);
+      throw new Error('email send failed: ' + res.status);
+    }
+    console.log('[NF Order] FormSubmit OK');
     return true;
   } finally {
     if (t) clearTimeout(t);
@@ -1731,8 +1741,10 @@ async function completeOrder() {
   try {
     emailOk = await sendOrderEmail(orderNumber, orderItems);
   } catch (e) {
+    console.warn('[NF Order] Email send error:', e.message);
     emailOk = false; // timeout/error → WhatsApp fallback
   }
+  console.log('[NF Order] Email status:', emailOk ? 'SUCCESS — order email par chala gaya' : 'FAIL — WhatsApp fallback chal raha hai');
   const waOpened = emailOk ? false : openWhatsAppOrder(orderNumber, orderItems);
 
   checkout.processing = false;
