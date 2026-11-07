@@ -1043,7 +1043,7 @@ function buildCheckout() {
                 <span>Delivery Charges</span>
                 <strong data-co-ship>-</strong>
               </div>
-              <p class="co-del-note">Delivery charges will be shared &amp; submitted in advance after order confirmation from our team on WhatsApp.</p>
+              <p class="co-del-note">Delivery charges will be shared &amp; submitted in advance after order confirmation from our team.</p>
             </div>
             <div class="co-total-row co-discount-row" data-co-discount-row hidden>
               <span>Lucky Member Discount (15%)</span><strong data-co-discount>- Rs. 0</strong>
@@ -1076,7 +1076,7 @@ function buildCheckout() {
           </svg>
           <p>Order Confirmed</p>
           <p class="co-tick-ref" data-co-tick-ref style="display:none">Order <span>NF0001</span></p>
-          <p class="co-tick-lucky" data-co-tick-lucky style="display:none">👑 <b>VIP Pre-Order</b> unlocked — extra <b>15% OFF</b> applied. Stay tuned on WhatsApp!</p>
+          <p class="co-tick-lucky" data-co-tick-lucky style="display:none">👑 <b>VIP Pre-Order</b> unlocked — extra <b>15% OFF</b> applied. Our team will confirm your order shortly!</p>
         </div>
       </div>
     </section>`;
@@ -1134,8 +1134,8 @@ function applyCheckoutMode() {
   const note = q('.co-del-note');
   if (note) {
     note.textContent = lucky
-      ? 'This is a pre-order. Delivery charges will be shared & submitted in advance after your pre-order batch is confirmed by our team on WhatsApp.'
-      : 'Delivery charges will be shared & submitted in advance after order confirmation from our team on WhatsApp.';
+      ? 'This is a pre-order. Delivery charges will be shared & submitted in advance after your pre-order batch is confirmed by our team.'
+      : 'Delivery charges will be shared & submitted in advance after order confirmation from our team.';
   }
 
   const reviewTitle = q('[data-co-slide="3"] .co-slide-title');
@@ -1508,10 +1508,39 @@ async function nextOrderNumber() {
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* =========================================================
-   WhatsApp Order Confirmation
-   Auto-filled message — customer only has to press send.
+   Order Email — order website se HAMESHA direct email par jata hai
+   (FormSubmit free service). Customer ko WhatsApp par jaane ki
+   zaroorat nahi — checkout yahin site par complete hota hai aur
+   poora order detail sales email par receive hota hai.
+   Pehli baar order bhejne par Google inbox mein FormSubmit ki
+   "Activate Form" email aati hai — us link par click kar do
+   (sirf ek dafa, uske baad sab orders direct email par aayenge).
    ========================================================= */
-const WHATSAPP_ORDER_NUMBER = '923706653839';
+const ORDER_EMAIL = 'salels.northfits@gmail.com';
+
+async function sendOrderEmail(orderNumber, items) {
+  const message = buildWhatsAppOrderMessage(orderNumber, items);
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const t = ctrl ? setTimeout(() => ctrl.abort(), 10000) : null;
+  try {
+    const res = await fetch('https://formsubmit.co/ajax/' + ORDER_EMAIL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        _subject: '🛒 North Fits New Order — ' + orderNumber,
+        _template: 'box',
+        _captcha: 'false',
+        'Order Number': orderNumber,
+        message: message
+      }),
+      signal: ctrl ? ctrl.signal : undefined
+    });
+    if (!res.ok) throw new Error('email send failed: ' + res.status);
+    return true;
+  } finally {
+    if (t) clearTimeout(t);
+  }
+}
 
 function getCoValue(sel) {
   const el = document.querySelector(sel);
@@ -1653,15 +1682,25 @@ async function completeOrder() {
   saveCart();
   updateCartUI();
 
-  /* 4. WhatsApp par redirect — message already ready, user sirf send karta hai */
-  const waOpened = openWhatsAppOrder(orderNumber, orderItems);
+  /* 4. Order DIRECT email par bhejo — customer site par hi rehta hai,
+        WhatsApp par redirect nahi hota. Email na chal jaye (down/slow)
+        to WhatsApp message ready rakh do as backup, taake order kabhi
+        na rukay. */
+  let emailOk = false;
+  try {
+    emailOk = await sendOrderEmail(orderNumber, orderItems);
+  } catch (e) {
+    emailOk = false; // timeout/error → WhatsApp fallback
+  }
+  const waOpened = emailOk ? false : openWhatsAppOrder(orderNumber, orderItems);
 
   checkout.processing = false;
 
-  /* 5. Popup khula → checkout band karke FORAN front (homepage) par redirect.
-        Popup block ho gaya to page khud WhatsApp par chala gaya — kuch nahi karna */
-  if (waOpened) {
-    await delay(250);
+  /* 5. Email chala gaya → tick screen thodi dair hero, phir checkout band
+        karke homepage par wapas le jao. Fallback (WhatsApp) chala ho to
+        kuch nahi karna — page khud WhatsApp par chala gaya hoga */
+  if (emailOk) {
+    await delay(2500);
     closeCheckout();
     window.location.href = 'index.html';
   }
