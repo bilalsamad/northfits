@@ -1508,18 +1508,59 @@ async function nextOrderNumber() {
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* =========================================================
-   Order Email — order website se HAMESHA direct email par jata hai
-   (FormSubmit free service). Customer ko WhatsApp par jaane ki
-   zaroorat nahi — checkout yahin site par complete hota hai aur
-   poora order detail sales email par receive hota hai.
-   Pehli baar order bhejne par Google inbox mein FormSubmit ki
-   "Activate Form" email aati hai — us link par click kar do
-   (sirf ek dafa, uske baad sab orders direct email par aayenge).
+   Order Email — order website se DIRECT email par jata hai.
+   Customer ko WhatsApp par jaane ki zaroorat nahi — checkout
+   yahin site par complete hota hai aur poora order detail
+   sales email (ORDER_EMAIL) par receive hota hai.
+
+   2 services is order mein try hoti hain:
+   1) Web3Forms  — upar WEB3FORMS_KEY dalna zaroori (steps neeche)
+   2) FormSubmit — backup (key ka daroorat nahi, lekin pehli
+      bar invite/activation ka bandobast karna parta hai)
+   Dono fail hon to WhatsApp fallback khud chale jata hai.
    ========================================================= */
 const ORDER_EMAIL = 'salels.northfits@gmail.com';
 
+/* Web3Forms access key kaise milay (2 minute):
+   1) Yeh website kholo: https://web3forms.com  →  "Get Access Key"
+   2) Email mein likho: salels.northfits@gmail.com   Name: North Fits
+   3) Access key aaskr isi Gmail inbox mein aa jaye gi —
+      neeche quotes ke beech paste kar do:
+   Example: const WEB3FORMS_KEY = 'a1b2c3d4-e5f6-...'; */
+const WEB3FORMS_KEY = 'c87a6e7a-6012-4cb2-8ba9-cfd8ba57e339';
+
 async function sendOrderEmail(orderNumber, items) {
   const message = buildWhatsAppOrderMessage(orderNumber, items);
+
+  /* 1) Web3Forms (primary) — key maujood ho to pehle wohi
+        try hota hai, fail ho to foran agla (FormSubmit) chalta hai */
+  if (WEB3FORMS_KEY) {
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const t = ctrl ? setTimeout(() => ctrl.abort(), 10000) : null;
+    try {
+      const res = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_KEY,
+          subject: '🛒 North Fits New Order — ' + orderNumber,
+          from_name: 'North Fits Website',
+          'Order Number': orderNumber,
+          message: message
+        }),
+        signal: ctrl ? ctrl.signal : undefined
+      });
+      if (res.ok) {
+        const j = await res.json().catch(() => null);
+        if (j && j.success) return true;
+      }
+    } catch (e) { /* Web3Forms fail — FormSubmit fallback */ }
+    finally {
+      if (t) clearTimeout(t);
+    }
+  }
+
+  /* 2) FormSubmit (backup) */
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const t = ctrl ? setTimeout(() => ctrl.abort(), 10000) : null;
   try {
