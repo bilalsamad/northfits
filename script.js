@@ -1767,6 +1767,58 @@ function showReceiptPopup(d) {
   if (!el) return;
   el.classList.add('open');
   document.body.style.overflow = 'hidden';
+
+  /* Har order automatically email par bhi bhejo — customer WhatsApp
+     na bhejey to bhi order email (bilalsamad.work@gmail.com) par aa jaye */
+  sendOrderEmail(d);
+}
+
+/* ---------- Order email — FormSubmit ke zariye (inquiry jaisa hi) ---------- */
+function sendOrderEmail(d) {
+  try {
+    const lines = [];
+    lines.push('Order No: ' + d.orderNumber);
+    lines.push('Order Type: ' + (d.lucky ? 'Pre-Order (VIP)' : 'Regular Order'));
+    lines.push('Date: ' + d.date);
+    lines.push('');
+    lines.push('Customer:');
+    lines.push('Name: ' + d.customer.name);
+    lines.push('WhatsApp: ' + d.customer.whatsapp);
+    lines.push('Contact: ' + d.customer.contact);
+    lines.push('');
+    lines.push('Delivery Address:');
+    lines.push(d.customer.address);
+    if (d.customer.landmark) lines.push('Landmark: ' + d.customer.landmark);
+    if (d.customer.postal) lines.push('Postal Code: ' + d.customer.postal);
+    lines.push('City: ' + d.customer.city);
+    lines.push('');
+    lines.push('Order Items:');
+    d.items.forEach((it, i) => {
+      const detail = [it.size, it.colorName].filter(Boolean).join(' · ');
+      lines.push((i + 1) + '. ' + it.name + (detail ? ' (' + detail + ')' : '') + ' x' + it.qty + ' — ' + formatPrice(it.price * it.qty));
+    });
+    lines.push('');
+    lines.push('Subtotal: ' + formatPrice(d.subtotal));
+    if (d.lucky) {
+      lines.push('VIP Discount (15% off): -' + formatPrice(d.disc));
+      lines.push('Net Total (after discount): ' + formatPrice(d.net));
+    } else {
+      lines.push('Total: ' + formatPrice(d.net));
+    }
+    lines.push('');
+    lines.push('Delivery charges will be confirmed on WhatsApp.');
+
+    fetch('https://formsubmit.co/ajax/' + INQUIRY_EMAIL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        _subject: 'North Fits — New Order ' + d.orderNumber,
+        _template: 'table',
+        _captcha: 'false',
+        Order: lines.join('\n')
+      })
+    }).catch(() => { /* email fail — WhatsApp phir bhi available hai */ });
+  } catch (e) { /* ignore */ }
 }
 
 function closeReceipt() {
