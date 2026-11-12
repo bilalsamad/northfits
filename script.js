@@ -774,7 +774,7 @@ document.querySelector('[data-cart-open]')?.addEventListener('click', openCart);
 document.querySelector('[data-cart-close]')?.addEventListener('click', closeCart);
 backdropEl?.addEventListener('click', closeCart);
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { search?.close(); closeQuickView(); closeZoom(); closeCart(); closeCheckout(); }
+  if (e.key === 'Escape') { search?.close(); closeQuickView(); closeZoom(); closeCart(); closeCheckout(); if (document.querySelector('[data-rc]')?.classList.contains('open')) closeReceiptGoHome(); }
   if (e.key === 'Enter' && e.target.matches('[data-product]')) {
     search?.close();
     openQuickView(Number(e.target.dataset.index));
@@ -1043,7 +1043,7 @@ function buildCheckout() {
                 <span>Delivery Charges</span>
                 <strong data-co-ship>-</strong>
               </div>
-              <p class="co-del-note">Delivery charges will be shared &amp; submitted in advance after order confirmation from our team.</p>
+              <p class="co-del-note">Delivery charges will be shared &amp; submitted in advance after order confirmation from our team on WhatsApp.</p>
             </div>
             <div class="co-total-row co-discount-row" data-co-discount-row hidden>
               <span>Lucky Member Discount (15%)</span><strong data-co-discount>- Rs. 0</strong>
@@ -1076,7 +1076,7 @@ function buildCheckout() {
           </svg>
           <p>Order Confirmed</p>
           <p class="co-tick-ref" data-co-tick-ref style="display:none">Order <span>NF0001</span></p>
-          <p class="co-tick-lucky" data-co-tick-lucky style="display:none">👑 <b>VIP Pre-Order</b> unlocked — extra <b>15% OFF</b> applied. Our team will confirm your order shortly!</p>
+          <p class="co-tick-lucky" data-co-tick-lucky style="display:none">👑 <b>VIP Pre-Order</b> unlocked — extra <b>15% OFF</b> applied. Stay tuned on WhatsApp!</p>
         </div>
       </div>
     </section>`;
@@ -1134,8 +1134,8 @@ function applyCheckoutMode() {
   const note = q('.co-del-note');
   if (note) {
     note.textContent = lucky
-      ? 'This is a pre-order. Delivery charges will be shared & submitted in advance after your pre-order batch is confirmed by our team.'
-      : 'Delivery charges will be shared & submitted in advance after order confirmation from our team.';
+      ? 'This is a pre-order. Delivery charges will be shared & submitted in advance after your pre-order batch is confirmed by our team on WhatsApp.'
+      : 'Delivery charges will be shared & submitted in advance after order confirmation from our team on WhatsApp.';
   }
 
   const reviewTitle = q('[data-co-slide="3"] .co-slide-title');
@@ -1508,90 +1508,10 @@ async function nextOrderNumber() {
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* =========================================================
-   Order Email — order website se DIRECT email par jata hai.
-   Customer ko WhatsApp par jaane ki zaroorat nahi — checkout
-   yahin site par complete hota hai aur poora order detail
-   sales email (ORDER_EMAIL) par receive hota hai.
-
-   2 services is order mein try hoti hain:
-   1) Web3Forms  — upar WEB3FORMS_KEY dalna zaroori (steps neeche)
-   2) FormSubmit — backup (key ka daroorat nahi, lekin pehli
-      bar invite/activation ka bandobast karna parta hai)
-   Dono fail hon to WhatsApp fallback khud chale jata hai.
+   WhatsApp Order Confirmation
+   Auto-filled message — customer only has to press send.
    ========================================================= */
-const ORDER_EMAIL = 'salels.northfits@gmail.com';
-
-/* Web3Forms access key kaise milay (2 minute):
-   1) Yeh website kholo: https://web3forms.com  →  "Get Access Key"
-   2) Email mein likho: salels.northfits@gmail.com   Name: North Fits
-   3) Access key aaskr isi Gmail inbox mein aa jaye gi —
-      neeche quotes ke beech paste kar do:
-   Example: const WEB3FORMS_KEY = 'a1b2c3d4-e5f6-...'; */
-const WEB3FORMS_KEY = 'c87a6e7a-6012-4cb2-8ba9-cfd8ba57e339';
-
-async function sendOrderEmail(orderNumber, items) {
-  const message = buildWhatsAppOrderMessage(orderNumber, items);
-
-  /* 1) Web3Forms (primary) — key maujood ho to pehle wohi
-        try hota hai, fail ho to foran agla (FormSubmit) chalta hai.
-        Har step console mein log hota hai taake masla aasani
-        se trace ho sake (F12 → Console). */
-  if (WEB3FORMS_KEY) {
-    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const t = ctrl ? setTimeout(() => ctrl.abort(), 10000) : null;
-    try {
-      console.log('[NF Order] Web3Forms bhej raha hai…');
-      const res = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({
-          access_key: WEB3FORMS_KEY,
-          subject: '🛒 North Fits New Order — ' + orderNumber,
-          from_name: 'North Fits Website',
-          'Order Number': orderNumber,
-          message: message
-        }),
-        signal: ctrl ? ctrl.signal : undefined
-      });
-      if (res.ok) {
-        const j = await res.json().catch(() => null);
-        console.log('[NF Order] Web3Forms response:', j);
-        if (j && j.success) return true;
-      } else {
-        console.warn('[NF Order] Web3Forms fail — status', res.status);
-      }
-    } catch (e) { console.warn('[NF Order] Web3Forms error:', e.message); /* Web3Forms fail — FormSubmit fallback */ }
-    finally {
-      if (t) clearTimeout(t);
-    }
-  }
-
-  /* 2) FormSubmit (backup) */
-  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const t = ctrl ? setTimeout(() => ctrl.abort(), 10000) : null;
-  try {
-    const res = await fetch('https://formsubmit.co/ajax/' + ORDER_EMAIL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        _subject: '🛒 North Fits New Order — ' + orderNumber,
-        _template: 'box',
-        _captcha: 'false',
-        'Order Number': orderNumber,
-        message: message
-      }),
-      signal: ctrl ? ctrl.signal : undefined
-    });
-    if (!res.ok) {
-      console.warn('[NF Order] FormSubmit fail — status', res.status);
-      throw new Error('email send failed: ' + res.status);
-    }
-    console.log('[NF Order] FormSubmit OK');
-    return true;
-  } finally {
-    if (t) clearTimeout(t);
-  }
-}
+const WHATSAPP_ORDER_NUMBER = '923706653839';
 
 function getCoValue(sel) {
   const el = document.querySelector(sel);
@@ -1684,6 +1604,382 @@ function openWhatsAppOrder(orderNumber, items) {
   return false;
 }
 
+/* =========================================================
+   ORDER RECEIPT — full-screen popup
+   Tick animation ke saath hi customer ko poora receipt
+   dikhta hai (customer info + products + totals) aur
+   Download ka option hota hai. Footer par brand socials.
+   ========================================================= */
+
+function buildReceiptData(orderNumber, items) {
+  const subtotal = items.reduce((a, b) => a + b.qty * b.price, 0);
+  const lucky = luckyTier(orderNumber);
+  const disc = lucky ? Math.round(subtotal * NF_LUCKY_DISCOUNT_PCT / 100) : 0;
+  const cityEl = document.querySelector('[data-co-city]');
+  return {
+    orderNumber,
+    lucky,
+    date: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    customer: {
+      name: getCoValue('[data-co-name]'),
+      whatsapp: getCoValue('[data-co-whatsapp]'),
+      contact: getCoValue('[data-co-contact]'),
+      address: getCoValue('[data-co-address]'),
+      landmark: getCoValue('[data-co-landmark]'),
+      postal: getCoValue('[data-co-postal]'),
+      city: CITIES[Number(cityEl && cityEl.value) || 0] || ''
+    },
+    items: items.map((it) => ({ ...it })),
+    subtotal,
+    disc,
+    net: subtotal - disc
+  };
+}
+
+function buildReceiptPopup(d) {
+  if (document.querySelector('[data-rc]')) return;
+
+  const detail = (it) => {
+    const parts = [];
+    if (it.size) parts.push('Size ' + it.size);
+    if (it.colorName) parts.push(it.colorName);
+    return parts.join(' · ');
+  };
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="rc" data-rc role="dialog" aria-modal="true" aria-label="Order receipt">
+      <button class="rc-close" data-rc-close aria-label="Close receipt">&times;</button>
+      <div class="rc-inner">
+        <div class="rc-paper" data-rc-paper>
+          <header class="rc-head">
+            <span class="rc-logo"><img src="NORTH%20FITS%20LOGO.png" alt="North Fits" /></span>
+            <div class="rc-brand">
+              <h3>North Fits</h3>
+              <p>Premium Outfits &amp; Tailored Trousers</p>
+            </div>
+            <div class="rc-ref">
+              <small>Order Receipt</small>
+              <strong>${d.orderNumber}</strong>
+              ${d.lucky ? '<em>VIP Pre-Order</em>' : ''}
+            </div>
+          </header>
+
+          <div class="rc-body">
+            <div class="rc-meta">
+              <span><small>Date</small>${d.date}</span>
+              <span><small>Order Type</small>${d.lucky ? 'Pre-Order (VIP)' : 'Regular Order'}</span>
+            </div>
+
+            <p class="rc-label">Customer Details</p>
+            <div class="rc-rows">
+              <div class="rc-row"><span>Name</span><b>${d.customer.name}</b></div>
+              <div class="rc-row"><span>WhatsApp</span><b>${d.customer.whatsapp}</b></div>
+              <div class="rc-row"><span>Contact</span><b>${d.customer.contact}</b></div>
+            </div>
+
+            <p class="rc-label">Delivery Address</p>
+            <div class="rc-rows">
+              <div class="rc-row rc-row-top"><span>Address</span><b>${d.customer.address}</b></div>
+              ${d.customer.landmark ? `<div class="rc-row"><span>Landmark</span><b>${d.customer.landmark}</b></div>` : ''}
+              ${d.customer.postal ? `<div class="rc-row"><span>Postal Code</span><b>${d.customer.postal}</b></div>` : ''}
+              <div class="rc-row"><span>City</span><b>${d.customer.city}</b></div>
+            </div>
+
+            <p class="rc-label">Order Items</p>
+            <ul class="rc-items">
+              ${d.items.map((it) => `
+                <li class="rc-item">
+                  <div class="rc-item-top"><h4>${it.name}</h4><span>${formatPrice(it.price * it.qty)}</span></div>
+                  <p>${[detail(it), 'Qty ' + it.qty].filter(Boolean).join(' · ')}</p>
+                </li>`).join('')}
+            </ul>
+
+            <div class="rc-totals">
+              <div class="rc-row"><span>Subtotal</span><b>${formatPrice(d.subtotal)}</b></div>
+              ${d.lucky ? `<div class="rc-row rc-discount"><span>VIP Discount (15% off)</span><b>-${formatPrice(d.disc)}</b></div>` : ''}
+              <div class="rc-row rc-total"><span>Total</span><b>${formatPrice(d.net)}</b></div>
+            </div>
+
+            <p class="rc-note">Delivery charges will be shared &amp; submitted in advance after order confirmation from our team on WhatsApp.</p>
+          </div>
+
+          <footer class="rc-foot">
+            <h4>Thank You for Shopping with North Fits!</h4>
+            <p>Please wait for order confirmation on WhatsApp.</p>
+            <div class="rc-social">
+              <small>— Follow Us —</small>
+              <a href="https://instagram.com/north._fits" target="_blank" rel="noopener noreferrer">Instagram · north._fits</a>
+              <a href="https://facebook.com/north.fits" target="_blank" rel="noopener noreferrer">Facebook · north.fits</a>
+              <a href="https://tiktok.com/@north._fits" target="_blank" rel="noopener noreferrer">TikTok · north._fits</a>
+              <span>WhatsApp Channel · NORTH FITS</span>
+            </div>
+          </footer>
+        </div>
+
+        <div class="rc-actions">
+          <button class="btn btn-ghost" data-rc-download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5"/><path d="M4 19h16"/></svg>
+            Download Receipt
+          </button>
+          <button class="btn btn-solid" data-rc-wa>Send Order on WhatsApp</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(wrap);
+
+  wrap.querySelector('[data-rc-close]').addEventListener('click', closeReceiptGoHome);
+  wrap.querySelector('[data-rc-download]').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const old = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = 'Preparing receipt…';
+    try {
+      const url = await makeReceiptPng(d);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'North-Fits-Receipt-' + d.orderNumber + '.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      showToast('Could not download the receipt — please try again.');
+    }
+    btn.disabled = false;
+    btn.innerHTML = old;
+  });
+  wrap.querySelector('[data-rc-wa]').addEventListener('click', () => {
+    const opened = openWhatsAppOrder(d.orderNumber, d.items);
+    if (opened) {
+      setTimeout(() => {
+        closeReceipt();
+        closeCheckout();
+        window.location.href = 'index.html';
+      }, 300);
+    }
+  });
+}
+
+function showReceiptPopup(d) {
+  buildReceiptPopup(d);
+  const el = document.querySelector('[data-rc]');
+  if (!el) return;
+  el.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeReceipt() {
+  document.querySelector('[data-rc]')?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeReceiptGoHome() {
+  closeReceipt();
+  closeCheckout();
+  window.location.href = 'index.html';
+}
+
+/* ---------- Receipt PNG (download) — canvas par draw kar ke ---------- */
+function loadReceiptImg(src) {
+  return new Promise((res) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => res(null);
+    im.src = src;
+  });
+}
+
+function renderReceiptToCanvas(ctx, d, logo, W) {
+  const PAD = 46;
+  const CW = W - PAD * 2;
+  const DARK = '#0e2318';
+  const GOLD = '#f2d98d';
+  const GREEN = '#12352a';
+  const MUTED = 'rgba(18, 43, 30, 0.62)';
+
+  ctx.textBaseline = 'alphabetic';
+
+  const text = (t, x, yy, font, color, align = 'left') => {
+    ctx.font = font;
+    ctx.fillStyle = color;
+    ctx.textAlign = align;
+    ctx.fillText(String(t == null ? '' : t), x, yy);
+  };
+  const wrapText = (t, font, maxW) => {
+    ctx.font = font;
+    const words = String(t || '').split(/\s+/).filter(Boolean);
+    const lines = [];
+    let line = '';
+    words.forEach((w) => {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+      else line = test;
+    });
+    if (line) lines.push(line);
+    return lines.length ? lines : [''];
+  };
+  const dash = (yy) => {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(18, 43, 30, 0.25)';
+    ctx.setLineDash([5, 5]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD, yy);
+    ctx.lineTo(W - PAD, yy);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  /* Paper background */
+  ctx.fillStyle = '#fffdf8';
+  ctx.fillRect(0, 0, W, 5000);
+
+  /* Header band */
+  const HEAD_H = 150;
+  ctx.fillStyle = DARK;
+  ctx.fillRect(0, 0, W, HEAD_H);
+
+  const LR = 36;
+  const LX = PAD + LR;
+  const LY = HEAD_H / 2;
+  if (logo) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(LX, LY, LR, 0, Math.PI * 2);
+    ctx.clip();
+    const s = Math.max((LR * 2) / logo.width, (LR * 2) / logo.height);
+    ctx.drawImage(logo, LX - (logo.width * s) / 2, LY - (logo.height * s) / 2, logo.width * s, logo.height * s);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#f6f1e6';
+    ctx.beginPath();
+    ctx.arc(LX, LY, LR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(LX, LY, LR + 4, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const BX = LX + LR + 18;
+  text('NORTH FITS', BX, LY - 4, '600 26px "Playfair Display", Georgia, serif', '#f6f1e6');
+  text('Premium Outfits & Tailored Trousers', BX, LY + 20, '400 12px Jost, Arial, sans-serif', GOLD);
+
+  text('ORDER RECEIPT', W - PAD, LY - 18, '600 11px Jost, Arial, sans-serif', GOLD, 'right');
+  text(d.orderNumber, W - PAD, LY + 10, '600 25px Jost, Arial, sans-serif', '#ffffff', 'right');
+  if (d.lucky) text('VIP PRE-ORDER', W - PAD, LY + 32, '600 11px Jost, Arial, sans-serif', GOLD, 'right');
+
+  /* Date / type */
+  let y = HEAD_H + 34;
+  text('DATE', PAD, y, '600 10.5px Jost, Arial, sans-serif', MUTED);
+  text('ORDER TYPE', W - PAD, y, '600 10.5px Jost, Arial, sans-serif', MUTED, 'right');
+  y += 16;
+  text(d.date, PAD, y, '400 13.5px Jost, Arial, sans-serif', GREEN);
+  text(d.lucky ? 'Pre-Order (VIP)' : 'Regular Order', W - PAD, y, '400 13.5px Jost, Arial, sans-serif', GREEN, 'right');
+  y += 20;
+  dash(y);
+
+  const label = (t) => { y += 30; text(t.toUpperCase(), PAD, y, '700 12px Jost, Arial, sans-serif', 'rgba(18,43,30,0.55)'); y += 18; };
+  const row = (k, v) => {
+    text(k, PAD, y, '400 13.5px Jost, Arial, sans-serif', MUTED);
+    text(v, W - PAD, y, '500 13.5px Jost, Arial, sans-serif', GREEN, 'right');
+    y += 20;
+  };
+
+  label('Customer Details');
+  row('Name', d.customer.name);
+  row('WhatsApp', d.customer.whatsapp);
+  row('Contact', d.customer.contact);
+
+  label('Delivery Address');
+  wrapText(d.customer.address, '400 13.5px Jost, Arial, sans-serif', CW).forEach((ln) => {
+    text(ln, PAD, y, '400 13.5px Jost, Arial, sans-serif', GREEN);
+    y += 19;
+  });
+  if (d.customer.landmark) row('Landmark', d.customer.landmark);
+  if (d.customer.postal) row('Postal Code', d.customer.postal);
+  row('City', d.customer.city);
+
+  label('Order Items');
+  d.items.forEach((it) => {
+    text(it.name, PAD, y, '600 15px Jost, Arial, sans-serif', GREEN);
+    text(formatPrice(it.price * it.qty), W - PAD, y, '600 15px Jost, Arial, sans-serif', GREEN, 'right');
+    y += 18;
+    const parts = [];
+    if (it.size) parts.push('Size ' + it.size);
+    if (it.colorName) parts.push(it.colorName);
+    parts.push('Qty ' + it.qty);
+    text(parts.join(' · '), PAD, y, '400 12.5px Jost, Arial, sans-serif', MUTED);
+    y += 24;
+  });
+
+  y += 4;
+  dash(y);
+  y += 30;
+  const trow = (k, v, strong) => {
+    text(k, PAD, y, (strong ? '700 15px' : '400 14px') + ' Jost, Arial, sans-serif', strong ? GREEN : MUTED);
+    text(v, W - PAD, y, (strong ? '700 17px' : '500 14px') + ' Jost, Arial, sans-serif', GREEN, 'right');
+    y += strong ? 28 : 22;
+  };
+  trow('Subtotal', formatPrice(d.subtotal));
+  if (d.lucky) trow('VIP Discount (15% off)', '-' + formatPrice(d.disc));
+  y += 2;
+  trow('TOTAL', formatPrice(d.net));
+
+  y += 8;
+  text('Delivery charges will be confirmed on WhatsApp.', W / 2, y, '400 12px Jost, Arial, sans-serif', MUTED, 'center');
+  y += 16;
+  dash(y);
+
+  /* Footer band */
+  y += 24;
+  const fY = y;
+  y += 24; const l1 = y; y += 22; const l2 = y; y += 28; const l3 = y; y += 22;
+  const sl = [];
+  ['Instagram  ·  north._fits', 'Facebook  ·  north.fits', 'TikTok  ·  north._fits', 'WhatsApp Channel  ·  NORTH FITS'].forEach(() => {
+    sl.push(y);
+    y += 21;
+  });
+  y += 8; const dom = y; y += 26;
+
+  ctx.fillStyle = DARK;
+  ctx.fillRect(0, fY, W, y - fY);
+
+  text('THANK YOU FOR SHOPPING WITH NORTH FITS!', W / 2, l1, '600 17px Jost, Arial, sans-serif', '#f6f1e6', 'center');
+  text('Please wait for order confirmation on WhatsApp.', W / 2, l2, '400 12.5px Jost, Arial, sans-serif', GOLD, 'center');
+  text('— FOLLOW US —', W / 2, l3, '600 11px Jost, Arial, sans-serif', GOLD, 'center');
+  ['Instagram  ·  north._fits', 'Facebook  ·  north.fits', 'TikTok  ·  north._fits', 'WhatsApp Channel  ·  NORTH FITS'].forEach((s, i) => {
+    text(s, W / 2, sl[i], '400 13px Jost, Arial, sans-serif', '#f6f1e6', 'center');
+  });
+  text('northfits.vercel.app', W / 2, dom, '400 11px Jost, Arial, sans-serif', 'rgba(246,241,230,0.55)', 'center');
+
+  return y;
+}
+
+async function makeReceiptPng(d) {
+  try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) { /* ignore */ }
+  const logo = await loadReceiptImg('NORTH%20FITS%20LOGO.png');
+
+  const W = 760;
+  const S = 2;
+  const tmp = document.createElement('canvas');
+  tmp.width = W * S;
+  tmp.height = 5000 * S;
+  const tctx = tmp.getContext('2d');
+  tctx.scale(S, S);
+  const h = renderReceiptToCanvas(tctx, d, logo, W);
+
+  const c = document.createElement('canvas');
+  c.width = W * S;
+  c.height = Math.ceil((h + 6) * S);
+  const ctx = c.getContext('2d');
+  ctx.scale(S, S);
+  renderReceiptToCanvas(ctx, d, logo, W);
+  return c.toDataURL('image/png');
+}
+
 async function completeOrder() {
   if (checkout.processing) return;
   checkout.processing = true;
@@ -1733,30 +2029,14 @@ async function completeOrder() {
   saveCart();
   updateCartUI();
 
-  /* 4. Order DIRECT email par bhejo — customer site par hi rehta hai,
-        WhatsApp par redirect nahi hota. Email na chal jaye (down/slow)
-        to WhatsApp message ready rakh do as backup, taake order kabhi
-        na rukay. */
-  let emailOk = false;
-  try {
-    emailOk = await sendOrderEmail(orderNumber, orderItems);
-  } catch (e) {
-    console.warn('[NF Order] Email send error:', e.message);
-    emailOk = false; // timeout/error → WhatsApp fallback
-  }
-  console.log('[NF Order] Email status:', emailOk ? 'SUCCESS — order email par chala gaya' : 'FAIL — WhatsApp fallback chal raha hai');
-  const waOpened = emailOk ? false : openWhatsAppOrder(orderNumber, orderItems);
-
   checkout.processing = false;
 
-  /* 5. Email chala gaya → tick screen thodi dair hero, phir checkout band
-        karke homepage par wapas le jao. Fallback (WhatsApp) chala ho to
-        kuch nahi karna — page khud WhatsApp par chala gaya hoga */
-  if (emailOk) {
-    await delay(2500);
-    closeCheckout();
-    window.location.href = 'index.html';
-  }
+  /* 4. Tick ke saath hi FULL-SCREEN RECEIPT popup — customer info +
+        products + totals + Download option. WhatsApp par bhejna ab
+        receipt popup ke button se hota hai (customer khud send karta hai). */
+  await delay(900);
+  const receiptData = buildReceiptData(orderNumber, orderItems);
+  showReceiptPopup(receiptData);
 }
 
 function restoreCart() {
