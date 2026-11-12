@@ -816,9 +816,9 @@ mobileMenu?.querySelectorAll('a').forEach((a) =>
 /* ---------- Inquiry form ----------
    Har page ke bottom par "Send Inquiry" form — customer apni
    unique/different inquiry text likh kar bhejta hai aur woh
-   email (bilalsamad.work@gmail.com) par receive hoti hai
+   email (salels.northfits@gmail.com) par receive hoti hai
    FormSubmit ke zariye (koi backend nahi chahiye). */
-const INQUIRY_EMAIL = 'bilalsamad.work@gmail.com';
+const INQUIRY_EMAIL = 'salels.northfits@gmail.com';
 
 document.querySelectorAll('[data-inquiry]').forEach((form) => {
   const note = form.parentElement.querySelector('[data-inquiry-note]');
@@ -1769,7 +1769,7 @@ function showReceiptPopup(d) {
   document.body.style.overflow = 'hidden';
 
   /* Har order automatically email par bhi bhejo — customer WhatsApp
-     na bhejey to bhi order email (bilalsamad.work@gmail.com) par aa jaye */
+     na bhejey to bhi order email (salels.northfits@gmail.com) par aa jaye */
   sendOrderEmail(d);
 }
 
