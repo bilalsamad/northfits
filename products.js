@@ -55,7 +55,7 @@ const NF_PRODUCTS = [
        Link daalte hi quick-view mein Instagram-style "View detailing on
        Instagram" button khud show ho jayega aur usi post par le jayega.
        Misal:  insta: 'https://www.instagram.com/p/Cxxxxxxxxxx/'  */
-    insta: 'https://www.instagram.com/p/Df1xPkgjauz/?dlrf=N3JuYnV4MnZuY3p2',
+    insta: '',
     locations: ['new', 'trousers', 'collections'],
     images: [
       'uploads/product-9-1.jpeg',
