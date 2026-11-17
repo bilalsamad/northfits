@@ -41,6 +41,17 @@ function badgeHtml(b) {
   return '<span class="' + cls.trim() + '"' + style + '>' + b.label + '</span>';
 }
 
+/* Gahra colour hai? — tooltip pill ka background dark/light karne ke liye */
+function isDarkColor(hex) {
+  const h = String(hex || '').replace('#', '');
+  const n = h.length === 3 ? h.split('').map((ch) => ch + ch).join('') : h;
+  if (!/^[0-9a-f]{6}$/i.test(n)) return false;
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) < 150;
+}
+
 /* ---------- Product grid ---------- */
 function productCard(p, i) {
   const badge = badgeHtml(p.badge) || (p.new ? '<span class="badge new">New</span>' : '');
@@ -50,7 +61,7 @@ function productCard(p, i) {
     ? `<img class="product-img" src="${imgs[0]}" data-srcs="${imgs.map(encodeURIComponent).join('|')}" alt="${p.name}" loading="lazy" />`
     : '';
   const dots = (p.colors && p.colors.length)
-    ? `<div class="color-dots">${p.colors.slice(0, 4).map((c) => `<span class="color-dot" style="background:${c.hex}" title="${c.name}"></span>`).join('')}${p.colors.length > 4 ? `<span class="color-dot more">+${p.colors.length - 4}</span>` : ''}</div>`
+    ? `<div class="color-dots">${p.colors.slice(0, 4).map((c) => `<span class="color-dot" style="background:${c.hex};color:${c.hex}" data-tip="${c.name}" data-tip-dark="${isDarkColor(c.hex) ? 1 : 0}" aria-label="Colour ${c.name}"></span>`).join('')}${p.colors.length > 4 ? `<span class="color-dot more">+${p.colors.length - 4}</span>` : ''}</div>`
     : '';
 
   return `
@@ -269,6 +280,12 @@ const qv = { index: null, size: null, colorIdx: 0, imgIdx: 0 };
 let qvSwipeGuard = false;
 
 function galleryVisuals(p) {
+  /* Khaas colour photo — agar selected colour ke liye colorImages set ho
+     to SIRF wohi image dikhe (normal slides mein yeh kabhi nahi aati) */
+  const sel = (p.colors && p.colors[qv.colorIdx]) || null;
+  const cmap = p.colorImages || {};
+  const special = sel ? (cmap[sel.name] || cmap[sel.hex] || null) : null;
+  if (special) return [{ visual: 'visual-img', variant: '', src: special }];
   if (p.images && p.images.length) {
     return p.images.slice(0, 3).map((src) => ({ visual: 'visual-img', variant: '', src }));
   }
@@ -277,6 +294,26 @@ function galleryVisuals(p) {
     { visual: p.visual, variant: ' qv-v2' },
     { visual: p.visual, variant: ' qv-v3' }
   ];
+}
+
+/* Gallery dobara banao — colour change hone par bhi yehi call hota hai */
+function renderQvGallery() {
+  const p = PRODUCTS[qv.index];
+  const el = document.querySelector('[data-qv]');
+  if (!p || !el) return;
+  const imgs = galleryVisuals(p);
+  el.querySelector('[data-qv-imgs]').innerHTML = imgs
+    .map((g, i) => g.src
+      ? `<div class="qv-img visual-img${i === 0 ? ' active' : ''}" data-qv-img="${i}"><img class="qv-photo" src="${g.src}" alt="${p.name}" /></div>`
+      : `<div class="qv-img ${g.visual}${g.variant}${i === 0 ? ' active' : ''}" data-qv-img="${i}"></div>`)
+    .join('');
+  const dotsEl = el.querySelector('[data-qv-dots]');
+  dotsEl.innerHTML = imgs
+    .map((g, i) => `<button class="qv-dot${i === 0 ? ' active' : ''}" data-qv-dot="${i}" aria-label="Image ${i + 1}"></button>`)
+    .join('');
+  dotsEl.style.display = imgs.length < 2 ? 'none' : '';
+  qv.imgIdx = 0;
+  setQvImage(0);
 }
 
 function setQvImage(i) {
@@ -330,20 +367,12 @@ function openQuickView(index) {
     }
   }
 
-  const imgs = galleryVisuals(p);
-  el.querySelector('[data-qv-imgs]').innerHTML = imgs
-    .map((g, i) => g.src
-      ? `<div class="qv-img visual-img${i === 0 ? ' active' : ''}" data-qv-img="${i}"><img class="qv-photo" src="${g.src}" alt="${p.name}" /></div>`
-      : `<div class="qv-img ${g.visual}${g.variant}${i === 0 ? ' active' : ''}" data-qv-img="${i}"></div>`)
-    .join('');
-  el.querySelector('[data-qv-dots]').innerHTML = imgs
-    .map((g, i) => `<button class="qv-dot${i === 0 ? ' active' : ''}" data-qv-dot="${i}" aria-label="Image ${i + 1}"></button>`)
-    .join('');
-
   const qvColors = Array.isArray(p.colors) ? p.colors : [];
   el.querySelector('[data-qv-colors]').innerHTML = qvColors
-    .map((c, i) => `<button class="swatch${i === 0 ? ' active' : ''}" data-qv-color="${i}" style="background:${c.hex}" title="${c.name}" aria-label="Colour ${c.name}"></button>`)
+    .map((c, i) => `<button class="swatch${i === 0 ? ' active' : ''}" data-qv-color="${i}" style="background:${c.hex};color:${c.hex}" data-tip="${c.name}" data-tip-dark="${isDarkColor(c.hex) ? 1 : 0}" aria-label="Colour ${c.name}"></button>`)
     .join('');
+
+  renderQvGallery();
 
   const pSizes = (p.sizes && p.sizes.length) ? p.sizes : (SIZES[p.category] || []);
   el.querySelector('[data-qv-sizes]').innerHTML = pSizes
@@ -380,6 +409,8 @@ document.addEventListener('click', (e) => {
   if (qvColor) {
     qv.colorIdx = Number(qvColor.dataset.qvColor);
     document.querySelectorAll('[data-qv-color]').forEach((b, i) => b.classList.toggle('active', i === qv.colorIdx));
+    /* Colour badla → image area refresh (colour-wise khaas photo aati hai) */
+    renderQvGallery();
     return;
   }
 
@@ -434,6 +465,19 @@ document.addEventListener('click', (e) => {
     saveCart();
 
   }
+});
+
+/* ---------- Signature Collection cards → product ----------
+   Home aur Collections page ki sign1/sign2 wali dono collection
+   images par click → 'Signature Pintrest Baggy Trouser' ka
+   quick-view (product) modal khul jata hai — page navigate nahi hota. */
+document.addEventListener('click', (e) => {
+  const card = e.target.closest('.collection-item');
+  if (!card) return;
+  const idx = PRODUCTS.findIndex((p) => /baggy trouser/i.test(p.name));
+  if (idx < 0) return; /* product na mile to normal link chalne do */
+  e.preventDefault();
+  openQuickView(idx);
 });
 
 /* =========================================================
@@ -626,7 +670,7 @@ document.addEventListener('click', (e) => {
     if (qvSwipeGuard) { qvSwipeGuard = false; return; } // swipe tha, tap nahi
     const p = PRODUCTS[qv.index];
     if (!p) return;
-    const srcs = Array.isArray(p.images) ? p.images.slice(0, 3) : [];
+    const srcs = galleryVisuals(p).map((g) => g.src).filter(Boolean);
     if (srcs.length) openZoom(srcs, qv.imgIdx);
   }
 });
