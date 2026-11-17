@@ -61,191 +61,6 @@ button { font-family: inherit; cursor: pointer; }
   font-weight: 400;
 }
 
-/* =========================================================
-   PRE-ORDER BANNER — homepage top
-   ========================================================= */
-.preorder-banner {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(120deg, var(--green-900) 0%, var(--green-700) 55%, var(--green-800) 100%);
-  color: var(--beige-100);
-}
-
-.preorder-glow {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(60% 140% at 12% 20%, rgba(233, 196, 106, 0.20) 0%, transparent 55%),
-    radial-gradient(50% 120% at 88% 80%, rgba(233, 196, 106, 0.14) 0%, transparent 55%);
-  pointer-events: none;
-}
-
-.preorder-inner {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.8rem;
-  padding-block: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.preorder-copy { max-width: 620px; }
-
-.preorder-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.68rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: #e9c46a;
-  border: 1px solid rgba(233, 196, 106, 0.45);
-  background: rgba(233, 196, 106, 0.10);
-  padding: 0.32rem 0.85rem;
-  border-radius: 999px;
-}
-
-.preorder-pulse {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #e9c46a;
-  box-shadow: 0 0 0 0 rgba(233, 196, 106, 0.7);
-  animation: prePulse 1.8s ease-out infinite;
-}
-
-@keyframes prePulse {
-  0% { box-shadow: 0 0 0 0 rgba(233, 196, 106, 0.7); }
-  70% { box-shadow: 0 0 0 10px rgba(233, 196, 106, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(233, 196, 106, 0); }
-}
-
-.preorder-copy h2 {
-  font-family: var(--serif);
-  font-size: clamp(1.7rem, 3.4vw, 2.5rem);
-  font-weight: 500;
-  line-height: 1.15;
-  margin-top: 0.6rem;
-  color: var(--cream);
-}
-
-.preorder-copy h2 em {
-  font-style: italic;
-  color: #e9c46a;
-}
-
-.preorder-copy p {
-  margin-top: 0.55rem;
-  font-size: 0.96rem;
-  font-weight: 300;
-  color: rgba(246, 241, 230, 0.85);
-}
-
-.preorder-copy p strong { font-weight: 600; color: var(--cream); }
-
-.preorder-cta { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-.preorder-cta .btn {
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* banner ke andar ghost button dark background par readable ho */
-.preorder-banner .btn-ghost {
-  color: var(--beige-100);
-  border-color: rgba(246, 241, 230, 0.45);
-}
-.preorder-banner .btn-ghost:hover {
-  background: rgba(246, 241, 230, 0.12);
-  border-color: rgba(246, 241, 230, 0.8);
-}
-
-@media (max-width: 720px) {
-  .preorder-inner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1.15rem;
-    padding-block: 1.3rem;
-  }
-  .preorder-cta { width: 100%; }
-  .preorder-cta .btn { flex: 1 1 auto; text-align: center; justify-content: center; }
-}
-
-/* =========================================================
-   PRE-ORDER OFFER STRIP — "first 10 customers" slide
-   ========================================================= */
-.offer-strip {
-  background: linear-gradient(90deg, #e9c46a 0%, #f0d78a 50%, #e9c46a 100%);
-  color: var(--green-900);
-  border-bottom: 1px solid rgba(18, 43, 30, 0.12);
-}
-
-.offer-inner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.1rem;
-  padding-block: 0.8rem;
-  flex-wrap: wrap;
-  text-align: center;
-}
-
-.offer-badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.62rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: #f6f1e6;
-  background: var(--green-800);
-  padding: 0.34rem 0.8rem;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.offer-text {
-  font-size: 0.98rem;
-  font-weight: 400;
-  letter-spacing: 0.01em;
-}
-
-.offer-text strong { font-weight: 700; }
-
-.offer-text em {
-  font-style: normal;
-  font-weight: 700;
-  color: var(--green-900);
-  background: rgba(255, 255, 255, 0.65);
-  padding: 0.05rem 0.4rem;
-  border-radius: 5px;
-}
-
-.btn-gold {
-  background: var(--green-800);
-  color: var(--beige-100);
-  padding: 0.6rem 1.5rem;
-  box-shadow: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-gold:hover {
-  background: var(--green-600);
-  color: var(--cream);
-  transform: translateY(-2px);
-}
-
-@media (max-width: 720px) {
-  .offer-inner { gap: 0.65rem; padding-block: 0.85rem; }
-  .offer-text { font-size: 0.9rem; }
-  .offer-strip .btn-gold { width: 100%; max-width: 320px; }
-}
-
 /* ---------- Header ---------- */
 .header {
   position: sticky;
@@ -491,7 +306,7 @@ body.nav-open { overflow: hidden; }
 
 /* ---------- Hero ---------- */
 .hero {
-  min-height: calc(100vh - 132px);
+  min-height: calc(90vh - 132px);
   display: flex;
   align-items: center;
   position: relative;
@@ -533,7 +348,7 @@ body.nav-open { overflow: hidden; }
   grid-template-columns: 1.05fr 0.95fr;
   gap: 4rem;
   align-items: center;
-  padding-block: 0.75rem 1.75rem;
+  padding-block: 0.75rem 0.5rem;
 }
 
 .eyebrow {
@@ -1027,9 +842,22 @@ body.nav-open { overflow: hidden; }
 
 .collection-visual {
   position: relative;
-  height: 460px;
+  /* images 3:4 portrait (1086x1448) — box ka ratio match karta hai
+     taake image puri fit ho: na crop (zoom), na side khali space */
+  aspect-ratio: 3 / 4;
   display: grid;
   place-items: center;
+  overflow: hidden;
+  transition: transform 0.6s ease;
+}
+
+/* hover par image smooth zoom-in */
+.collection-item:hover .collection-visual { transform: scale(1.05); }
+
+/* hover par chip highlight */
+.collection-item:hover .collection-chip {
+  background: var(--green-800);
+  color: var(--beige-100);
 }
 
 .vis-trousers {
@@ -2164,7 +1992,6 @@ body.nav-open { overflow: hidden; }
 @media (max-width: 1024px) {
   .hero-inner { gap: 2.5rem; }
   .collections { grid-template-columns: 1fr; }
-  .collection-visual { height: 360px; }
   .testimonials { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
 }
@@ -2173,7 +2000,7 @@ body.nav-open { overflow: hidden; }
   .nav { display: none; }
   .nav-toggle { display: flex; }
 
-  .hero-inner { grid-template-columns: 1fr; padding-block: 3rem; }
+  .hero-inner { grid-template-columns: 1fr; padding-block: 2.5rem 1.25rem; }
   .hero-visual { min-height: 440px; }
   .hero { min-height: auto; }
 
@@ -2524,24 +2351,11 @@ body.nav-open { overflow: hidden; }
 
 .co-total-row strong { font-family: var(--serif); font-size: 1.35rem; }
 
-/* Lucky member ka 15% OFF — discount row (green) + net total */
-.co-discount-row strong {
-  font-family: var(--serif);
-  font-size: 1.15rem;
-  color: #1f7a4d;
-}
-
 .co-net-row strong {
   font-family: var(--serif);
   font-size: 1.45rem;
   color: var(--green-900);
 }
-
-.co-discount-row[hidden],
-.co-net-row[hidden] { display: none !important; }
-
-.co-discount-row.show,
-.co-net-row.show { display: flex; }
 
 /* Delivery block */
 .co-delivery {
@@ -2608,7 +2422,7 @@ body.nav-open { overflow: hidden; }
 
 .co-free.show { display: flex; }
 
-/* chalti hui golden shimmer — VIP jaisi premium feel */
+/* chalti hui golden shimmer — premium feel */
 .co-free::after {
   content: '';
   position: absolute;
@@ -2676,80 +2490,6 @@ body.nav-open { overflow: hidden; }
 
 .co-next-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* Pre-order tag — order summary slide ke title ke saath */
-.co-pre-tag {
-  display: inline-block;
-  vertical-align: middle;
-  margin-left: 0.5rem;
-  font-family: var(--sans);
-  font-size: 0.58rem;
-  letter-spacing: 0.16em;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--green-800);
-  background: #f2e3bd;
-  border: 1px solid rgba(18, 43, 30, 0.18);
-  padding: 0.22rem 0.6rem;
-  border-radius: 999px;
-  position: relative;
-  top: -2px;
-}
-
-/* ---------- Lucky Draw banner — checkout (sirf NF0001–NF0020) ---------- */
-.co-lucky {
-  display: none;
-  align-items: flex-start;
-  gap: 0.85rem;
-  margin: 0.9rem 0 0.1rem;
-  padding: 0.95rem 1.1rem;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #0e2318 0%, #17392a 55%, #24503a 100%);
-  border: 1px solid rgba(242, 217, 141, 0.55);
-  box-shadow: 0 12px 34px rgba(14, 35, 24, 0.28), 0 0 22px rgba(242, 217, 141, 0.18);
-  position: relative;
-  overflow: hidden;
-  animation: luckyIn 0.55s ease both;
-}
-
-.co-lucky.show { display: flex; }
-
-/* chalti hui sunarin shimmer — premium feel */
-.co-lucky::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.18) 48%, transparent 62%);
-  transform: translateX(-130%);
-  animation: luckyShine 3.4s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.co-lucky-icon {
-  font-size: 1.6rem;
-  line-height: 1;
-  filter: drop-shadow(0 0 10px rgba(242, 217, 141, 0.65));
-  animation: luckyPulse 1.9s ease-in-out infinite;
-}
-
-.co-lucky-copy strong {
-  display: block;
-  color: #f2d98d;
-  font-size: 0.68rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  font-weight: 700;
-  margin-bottom: 0.28rem;
-}
-
-.co-lucky-copy p {
-  margin: 0;
-  color: #ece5d2;
-  font-size: 0.82rem;
-  line-height: 1.55;
-}
-
-.co-lucky-copy b { color: #ffe9a8; font-weight: 600; }
-
 @keyframes luckyIn {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: none; }
@@ -2764,23 +2504,6 @@ body.nav-open { overflow: hidden; }
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.14); }
 }
-
-/* ---------- Lucky line — order success screen ---------- */
-.co-tick-lucky {
-  display: none;
-  margin: 0.2rem 0 0;
-  padding: 0.7rem 1.1rem;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #0e2318, #24503a);
-  border: 1px solid rgba(242, 217, 141, 0.5);
-  color: #f2d98d;
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  box-shadow: 0 8px 24px rgba(14, 35, 24, 0.22);
-  animation: luckyIn 0.5s ease 0.4s both;
-}
-
-.co-tick-lucky b { color: #ffe9a8; }
 
 /* ---------- Mobile: Netlify badge se Next button na chhupe ----------
    Netlify ka "Published with Netlify" watermark bottom-right pe fixed
@@ -3446,16 +3169,6 @@ body.nav-open { overflow: hidden; }
   color: #f2d98d;
 }
 .rc-ref strong { font-size: 1.15rem; letter-spacing: 0.08em; }
-.rc-ref em {
-  display: block;
-  margin-top: 0.15rem;
-  font-style: normal;
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #ffe9a8;
-}
 
 .rc-body { padding: 1.3rem 1.35rem 1.1rem; }
 
@@ -3540,8 +3253,6 @@ body.nav-open { overflow: hidden; }
 }
 
 .rc-totals .rc-row b { font-weight: 600; }
-
-.rc-discount span, .rc-discount b { color: #1f7a4d; }
 
 .rc-total {
   padding-top: 0.35rem;
