@@ -1886,6 +1886,7 @@ body.nav-open { overflow: hidden; }
   border: 2px solid var(--beige-100);
   outline: 1px solid rgba(18, 43, 30, 0.25);
   cursor: pointer;
+  position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -3044,6 +3045,7 @@ body.nav-open { overflow: hidden; }
   border: 1px solid rgba(18, 43, 30, 0.15);
   box-shadow: 0 1px 3px rgba(14, 35, 24, 0.18);
   flex-shrink: 0;
+  position: relative;
 }
 .color-dot.more {
   border: 0;
@@ -3063,6 +3065,67 @@ body.nav-open { overflow: hidden; }
   border: 1px solid rgba(18, 43, 30, 0.2);
   vertical-align: -1px;
   margin: 0 4px 0 2px;
+}
+
+/* ---------- Colour dot / swatch hover tooltip ----------
+   Circle ke upar usi colour ke naam wali pill — text usi
+   circle ke shade ka hota hai (inline color se inherit). */
+.color-dot[data-tip]::after,
+.swatch[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  background: #0e2318;
+  color: inherit;
+  font-family: var(--sans);
+  font-size: 0.66rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  padding: 6px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 40;
+}
+
+/* Gahre shades ke liye light pill (text dark colour ka readable rahe) */
+.color-dot[data-tip-dark="1"]::after,
+.swatch[data-tip-dark="1"]::after {
+  background: var(--beige-100, #f6f1e6);
+  box-shadow: 0 0 0 1px rgba(18, 43, 30, 0.22), 0 4px 12px rgba(14, 35, 24, 0.18);
+}
+
+.color-dot[data-tip]::after {
+  left: -6px;
+  transform: translateY(3px);
+}
+
+.swatch[data-tip]::after {
+  left: 50%;
+  transform: translateX(-50%) translateY(3px);
+  box-shadow: 0 4px 12px rgba(14, 35, 24, 0.28);
+}
+
+.color-dot:hover[data-tip]::after,
+.color-dot:focus-visible[data-tip]::after,
+.swatch:hover[data-tip]::after,
+.swatch:focus-visible[data-tip]::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.color-dot:hover[data-tip]::after,
+.color-dot:focus-visible[data-tip]::after {
+  transform: translateY(0);
+}
+
+.swatch:hover[data-tip]::after,
+.swatch:focus-visible[data-tip]::after {
+  transform: translateX(-50%) translateY(0);
 }
 
 /* =========================================================
