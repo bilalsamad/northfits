@@ -18,7 +18,8 @@
      desc: 'Chhoti si description',              // optional
      images: ['uploads/trousers-1.jpg'],         // optional, 1-3 photos
      badge: { label: 'Hot', type: 'hot' },       // optional ('new' ya 'hot')
-     insta: 'https://www.instagram.com/...',     // optional
+     insta: 'https://www.instagram.com/p/...',   // optional — Instagram detailing post ka link
+                                                 // khaali ('') chhodo to button show NAHI hota
      locations: ['trousers']                     // optional — neeche dekho
    }
 
@@ -37,6 +38,40 @@
 
 const NF_PRODUCTS = [
   {
+    name: 'Signature Pintrest Baggy Trouser',
+    category: 'Trousers',
+    price: 1100,
+    visual: 'visual-fabric',
+    colors: [
+      { name: 'Beige / Cream', hex: '#F5EFD6' },
+      { name: 'Cargo Green', hex: '#25331D' },
+      { name: 'Dark Grey', hex: '#222223' }
+    ],
+    sizes: ['M', 'L', 'XL'],
+    new: true,
+    desc: 'Premium comfort meets effortless streetwear. Crafted with a relaxed fit, refined detailing, and timeless style for everyday sophistication. 🤍',
+    /* 👇 INSTAGRAM DETAILING POST LINK YAHAN PASTE KARO (jab post upload ho jaye).
+       Filhaal khaali hai — khaali rahegi to product par button show NAHI hoga.
+       Link daalte hi quick-view mein Instagram-style "View detailing on
+       Instagram" button khud show ho jayega aur usi post par le jayega.
+       Misal:  insta: 'https://www.instagram.com/p/Cxxxxxxxxxx/'  */
+    insta: '',
+    locations: ['new', 'trousers', 'collections'],
+    images: [
+      'uploads/product-9-1.jpeg',
+      'uploads/product-9-2.jpeg',
+      'uploads/product-9-3.jpeg'
+    ],
+    /* 👇 COLOUR-WISE KHAAS PHOTOS — yeh normal slides mein NAHI aati.
+       Jab customer is colour ke circle par click kare to hi image
+       area mein yeh photo show hoti hai. (Naam wahi likho jo upar
+       colors mein hai) */
+    colorImages: {
+      'Cargo Green': 'uploads/product-9-4.jpeg',
+      'Dark Grey': 'uploads/product-9-5.jpeg'
+    }
+  },
+  {
     name: 'Cotton Relaxed Linen Fitted Trouser',
     category: 'Trousers',
     price: 1950,
@@ -49,6 +84,7 @@ const NF_PRODUCTS = [
     sizes: ['M', 'L', 'XL'],
     new: true,
     desc: 'Relaxed-fit cotton trouser with a clean, tapered drape. Soft, breathable fabric and an easy mid-rise waist make it an everyday staple that moves with you. Pairs effortlessly with both casual tees and structured shirts.',
+    insta: '', // Instagram detailing post ka link yahan paste karo (khaali = button nahi dikhega)
     locations: ['new', 'trousers', 'collections'],
     images: [
       'uploads/product2-1.jpg',
@@ -71,6 +107,7 @@ const NF_PRODUCTS = [
     sizes: ['M', 'L', 'XL'],
     new: true,
     desc: 'Straight-leg trouser in lightweight China dry-fit fabric — crisp, breathable and wrinkle-resistant. A clean tailored line with an easy mid-rise fit keeps you sharp all day, whether you dress it up or keep it casual.',
+    insta: 'https://www.instagram.com/reel/DegGAcRC1p3/?mdxt=dWI4cDl3bWhjZDdt', // Instagram detailing post ka link yahan paste karo (khaali = button nahi dikhega)
     locations: ['new', 'trousers', 'collections'],
     images: [
       'uploads/product3-1.jpg',
@@ -91,6 +128,7 @@ const NF_PRODUCTS = [
     sizes: ['M', 'L', 'XL'],
     new: true,
     desc: 'Soft, slightly thick cotton-type fabric with a relaxed fit, designed for everyday comfort and a clean, premium streetwear look.',
+    insta: '', // Instagram detailing post ka link yahan paste karo (khaali = button nahi dikhega)
     locations: ['new', 'trousers', 'collections'],
     images: [
       'uploads/product4-1.jpeg',
@@ -109,6 +147,7 @@ const NF_PRODUCTS = [
     sizes: ['M', 'L'],
     new: true,
     desc: 'Premium cotton-style fabric with a structured feel, clean straight-leg fit, and functional cargo pockets. Designed for everyday comfort with a modern streetwear look.',
+    insta: '', // Instagram detailing post ka link yahan paste karo (khaali = button nahi dikhega)
     locations: ['new', 'trousers', 'collections'],
     images: [
       'uploads/product5-1.jpeg',
@@ -132,6 +171,7 @@ const NF_PRODUCTS = [
     sizes: ['M', 'L', 'XL'],
     new: true,
     desc: 'Crafted from premium chiffon fabric, featuring a rich coffee-brown shade, relaxed straight fit, elasticated waistband, and adjustable drawstring for effortless everyday style.',
+    insta: '', // Instagram detailing post ka link yahan paste karo (khaali = button nahi dikhega)
     locations: ['new', 'trousers', 'collections'],
     images: [
       'uploads/product6-1.jpeg',
@@ -151,6 +191,7 @@ const NF_PRODUCTS = [
     sizes: ['M', 'L', 'XL'],
     new: true,
     desc: 'Experience effortless style with a smooth finish, lightweight comfort, and a natural fall. Perfect for everyday wear with a clean, modern look.',
+    insta: '', // Instagram detailing post ka link yahan paste karo (khaali = button nahi dikhega)
     locations: ['new', 'trousers', 'collections'],
     images: [
       'uploads/product7-1.png',
