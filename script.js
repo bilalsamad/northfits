@@ -887,39 +887,10 @@ const CITIES = [
 const CO_STEPS = ['Items', 'Contact', 'Address', 'Confirm'];
 
 /* =========================================================
-   LUCKY DRAW SYSTEM
-   ---------------------------------------------------------
-   Pehle 20 orders (NF0001 se NF0020 tak) = "Lucky Draw" orders.
-   Inko checkout mein premium lucky-draw feel milti hai aur
-   WhatsApp message mein lucky-draw + pre-order wording hoti hai.
-
-   SAATH HI: lucky members ke total bill par EXTRA 15% OFF lagta
-   hai — confirm step par discount row dikhti hai aur amount
-   actually cut ho kar NET TOTAL show hota hai (sirf likha nahi,
-   calculation bhi hoti hai). NF0021 se aage sab normal — koi
-   discount nahi.
-
-   NF0020 ke BAAD sab kuch NORMAL ho jata hai — na site par
-   pre-order wording, na WhatsApp message mein. Kuch badalne
-   ki zaroorat nahi — yeh system khud order number dekh kar
-   decide karta hai.
+   CHECKOUT — normal order flow (pre-order / lucky-draw / VIP
+   15% discount system website se hata diya gaya hai).
    ========================================================= */
-const NF_LUCKY_FIRST = 1;   // pehla lucky number
-const NF_LUCKY_LAST = 20;   // aakhri lucky number (iske baad normal)
-const NF_LUCKY_DISCOUNT_PCT = 15; // lucky members ko total bill par EXTRA % off
-
-function luckyTier(orderNum) {
-  /* 'NF0001' (string) aur 1 (number) dono handle karo — pehle
-     String('NF0001') se Number() NaN ban tha aur lucky check
-     kabhi true nahi hota (WhatsApp/success lines maray thin). */
-  const n = Number(String(orderNum == null ? '' : orderNum).replace(/\D/g, ''));
-  return n >= NF_LUCKY_FIRST && n <= NF_LUCKY_LAST;
-}
-
-/* checkout.nextNumber = agla order number (checkout kholte waqt
-   sirf dekha/jaancha jata hai, increment nahi hota). Isi se
-   decide hota hai ke checkout/pre-order/lucky wording dikhe ya normal. */
-const checkout = { step: 0, processing: false, nextNumber: null };
+const checkout = { step: 0, processing: false };
 
 let audioCtx = null;
 function ensureAudio() {
@@ -964,13 +935,6 @@ function buildCheckout() {
       <header class="co-head">
         <p class="co-kicker" data-co-kicker>Secure Checkout</p>
         <h3 data-co-title>Checkout</h3>
-        <div class="co-lucky" data-co-lucky>
-          <span class="co-lucky-icon">👑</span>
-          <div class="co-lucky-copy">
-            <strong>VIP Pre-Order Access</strong>
-            <p>You're one of the first <b>20 pre-order customers</b> — enjoy <b>VIP priority</b>, an <b>EXTRA 15% OFF</b> on your total bill and exclusive perks on this limited pre-order batch.</p>
-          </div>
-        </div>
         <div class="co-steps" data-co-steps></div>
       </header>
 
@@ -981,12 +945,7 @@ function buildCheckout() {
             <h4 class="co-slide-title">Item Summary</h4>
             <ul class="co-items" data-co-items></ul>
             <div class="co-total-row"><span>Subtotal</span><strong data-co-subtotal>Rs. 0</strong></div>
-            <div class="co-total-row co-discount-row" data-co-discount-row hidden>
-              <span>Lucky Member Discount (15%)</span><strong data-co-discount>- Rs. 0</strong>
-            </div>
-            <div class="co-total-row co-net-row" data-co-net-row hidden>
-              <span>Net Total</span><strong data-co-net>Rs. 0</strong>
-            </div>
+            <div class="co-total-row co-net-row"><span>Total</span><strong data-co-net>Rs. 0</strong></div>
           </section>
 
           <section class="co-slide" data-co-slide="1">
@@ -1043,10 +1002,7 @@ function buildCheckout() {
                 <span>Delivery Charges</span>
                 <strong data-co-ship>-</strong>
               </div>
-              <p class="co-del-note">Delivery charges will be shared &amp; submitted in advance after order confirmation from our team on WhatsApp.</p>
-            </div>
-            <div class="co-total-row co-discount-row" data-co-discount-row hidden>
-              <span>Lucky Member Discount (15%)</span><strong data-co-discount>- Rs. 0</strong>
+              <p class="co-del-note">Delivery charges will be confirmed by our team after order confirmation.</p>
             </div>
             <div class="co-total-row co-net-row">
               <span>Total</span><strong data-co-net>Rs. 0</strong>
@@ -1057,7 +1013,7 @@ function buildCheckout() {
 
       <footer class="co-foot">
         <button class="btn btn-ghost co-back-btn" data-co-back>Back</button>
-        <button class="btn btn-solid co-next-btn" data-co-next>Continue to Pre-Order</button>
+        <button class="btn btn-solid co-next-btn" data-co-next>Continue to Proceed Order</button>
       </footer>
 
       <div class="co-success" data-co-success>
@@ -1076,7 +1032,6 @@ function buildCheckout() {
           </svg>
           <p>Order Confirmed</p>
           <p class="co-tick-ref" data-co-tick-ref style="display:none">Order <span>NF0001</span></p>
-          <p class="co-tick-lucky" data-co-tick-lucky style="display:none">👑 <b>VIP Pre-Order</b> unlocked — extra <b>15% OFF</b> applied. Stay tuned on WhatsApp!</p>
         </div>
       </div>
     </section>`;
@@ -1089,10 +1044,6 @@ function buildCheckout() {
     (i < CO_STEPS.length - 1 ? `<div class="co-step-bar" data-co-bar="${i}"></div>` : '')
   ).join('');
 
-  /* Checkout ke text — order number ke hisaab se lucky ya normal
-     (applyCheckoutMode() neeche defined hai) */
-  applyCheckoutMode();
-
   const cityEl = wrap.querySelector('[data-co-city]');
   cityEl.innerHTML = CITIES.map((name, i) => `<option value="${i}">${name}</option>`).join('');
 
@@ -1102,85 +1053,6 @@ function buildCheckout() {
   wrap.querySelector('[data-co-next]').addEventListener('click', nextCoStep);
   wrap.querySelector('[data-co-city]').addEventListener('change', renderCoSummary);
   wrap.querySelectorAll('.co-field input[type="tel"]').forEach(bindPkPhoneFormat);
-}
-
-/* =========================================================
-   applyCheckoutMode — checkout ki wording dynamically:
-   agla order number NF0001–NF0020 (lucky) → pre-order + lucky
-   draw premium feel. NF0021 ya us se aage → sab normal.
-   ========================================================= */
-function applyCheckoutMode() {
-  const lucky = luckyTier(checkout.nextNumber);
-  const q = (sel) => document.querySelector(sel);
-
-  const kick = q('[data-co-kicker]');
-  if (kick) kick.textContent = lucky ? 'Secure Pre-Order' : 'Secure Checkout';
-
-  const title = q('[data-co-title]');
-  if (title) title.textContent = lucky ? 'Pre-Order Checkout' : 'Checkout';
-
-  const next = q('[data-co-next]');
-  if (next) {
-    const n = checkout.step;
-    next.textContent = lucky
-      ? (n === 0 ? 'Continue to Pre-Order' :
-         n === 1 ? 'Continue' :
-         n === 2 ? 'Review Pre-Order' : 'Complete Pre-Order')
-      : (n === 0 ? 'Continue to Proceed Order' :
-         n === 1 ? 'Continue' :
-         n === 2 ? 'Review Order' : 'Complete Order');
-  }
-
-  const note = q('.co-del-note');
-  if (note) {
-    note.textContent = lucky
-      ? 'This is a pre-order. Delivery charges will be shared & submitted in advance after your pre-order batch is confirmed by our team on WhatsApp.'
-      : 'Delivery charges will be shared & submitted in advance after order confirmation from our team on WhatsApp.';
-  }
-
-  const reviewTitle = q('[data-co-slide="3"] .co-slide-title');
-  if (reviewTitle) {
-    reviewTitle.innerHTML = lucky
-      ? 'Order Summary <span class="co-pre-tag">PRE-ORDER</span>'
-      : 'Order Summary';
-  }
-
-  const loadingTxt = q('[data-co-loading] p');
-  if (loadingTxt) loadingTxt.textContent = lucky ? 'Processing your pre-order…' : 'Processing your order…';
-
-  const tickTxt = q('[data-co-tick] p');
-  if (tickTxt) tickTxt.textContent = lucky ? 'Pre-Order Confirmed' : 'Order Confirmed';
-
-  /* Lucky banner + success screen ki lucky line — sirf lucky orders ko */
-  const banner = q('[data-co-lucky]');
-  if (banner) banner.classList.toggle('show', lucky);
-
-  const tickLucky = q('[data-co-tick-lucky]');
-  if (tickLucky) tickLucky.style.display = lucky ? 'block' : 'none';
-
-  /* Lucky members (NF0001–NF0020) ko bill par EXTRA 15% OFF milta
-     hai — sirf unhi ke liye discount/net-total rows dikhao, baaki
-     sab ke liye chhupi rahein. Amount renderCoSummary() se aata hai. */
-  document.querySelectorAll('[data-co-discount-row], [data-co-net-row]').forEach((el) => {
-    el.classList.toggle('show', lucky);
-  });
-}
-
-/* Agla order number sirf PEEK karo (increment nahi) — taake checkout
-   kholte waat pata chal jaye ke customer lucky 20 mein hai ya nahi. */
-async function peekNextOrderNumber() {
-  try {
-    const id = localStorage.getItem(ORDER_SEQ_LIVE_ID_KEY) || ORDER_SEQ_ID;
-    const res = await seqFetch(ORDER_SEQ_API + '/' + id, { method: 'GET' });
-    if (res.ok) {
-      const obj = await res.json();
-      const seq = Number(obj && obj.data && obj.data.seq) || 0;
-      return seq + 1;
-    }
-  } catch (e) { /* online peek fail — local se guess karo */ }
-  let last = 0;
-  try { last = Number(localStorage.getItem(NF_ORDER_KEY) || 0) || 0; } catch (e) { last = 0; }
-  return last + 1;
 }
 
 function bindPkPhoneFormat(el) {
@@ -1221,24 +1093,10 @@ function renderCoSummary() {
   const items = [...cartItems.values()];
   const subtotal = items.reduce((a, b) => a + b.qty * b.price, 0);
 
-  /* Lucky members (pehle 20 orders) = EXTRA 15% OFF — bill par
-     actually deduct hota hai (sirf label nahi). Net total =
-     subtotal − 15%. Delivery charges ALAG cheez hain — woh order
-     confirm hone ke baad WhatsApp par bataye jate hain (pehle ki tarah). */
-  const lucky = luckyTier(checkout.nextNumber);
-  const discount = lucky ? Math.round(subtotal * NF_LUCKY_DISCOUNT_PCT / 100) : 0;
-  const net = subtotal - discount;
-
   document.querySelector('[data-co-subtotal]').textContent = formatPrice(subtotal);
 
-  document.querySelectorAll('[data-co-discount]').forEach((el) => {
-    el.textContent = '-' + CURRENCY + discount.toLocaleString();
-  });
-
-  /* Total = net (discount ke baad). Confirm slide ka [data-co-net]
-     aur Items slide ka [data-co-net-row] dono isi se bharte hain. */
   document.querySelectorAll('[data-co-net], [data-co-total]').forEach((el) => {
-    el.textContent = formatPrice(net);
+    el.textContent = formatPrice(subtotal);
   });
 
   /* Bill 5,000+ ho to Confirm slide par premium FREE-delivery highlight */
@@ -1291,9 +1149,6 @@ function goCoStep(n) {
 
   const back = document.querySelector('[data-co-back]');
   if (back) back.hidden = n === 0;
-
-  /* Button text + poori wording — lucky (NF0001–20) ya normal */
-  applyCheckoutMode();
 
   clearCoErrors();
 }
@@ -1366,23 +1221,12 @@ function openCheckout() {
   document.querySelector('[data-co-tick]').style.display = 'none';
 
   checkout.processing = false;
-  checkout.nextNumber = null;   // pehle se reset — purana order number dikhe na
   renderCo();
   goCoStep(0);
 
   document.querySelector('[data-co]').classList.add('open');
   document.querySelector('[data-co-backdrop]').classList.add('open');
   document.body.style.overflow = 'hidden';
-
-  /* Agla order number peek karo (increment nahi) — aate hi checkout ki
-     wording update: NF0001–NF0020 = lucky/pre-order feel, baad = normal */
-  peekNextOrderNumber().then((num) => {
-    const panel = document.querySelector('[data-co]');
-    if (!panel || !panel.classList.contains('open')) return; // user ne band kar diya
-    checkout.nextNumber = num;
-    applyCheckoutMode();
-    renderCoSummary(); // number mil gaya — discount/net-total recalculate
-  }).catch(() => {});
 }
 
 function closeCheckout() {
@@ -1428,7 +1272,7 @@ function localOrderNumber() {
 
    Har fetch par time-limit (ORDER_SEQ_TIMEOUT) laga hai — agar counter API
    slow ho ya bilkul na chal rahi ho to foran fail hota hai aur local
-   counter par switch ho jata hai, taake WhatsApp redirect kabhi late na ho. */
+   counter par switch ho jata hai, taake checkout kabhi late na ho. */
 const ORDER_SEQ_TIMEOUT = 2500; // ms — har network call ki max deri
 
 async function seqFetch(url, opts) {
@@ -1494,8 +1338,8 @@ async function globalOrderSeq() {
 
 async function nextOrderNumber() {
   /* Overall time-limit: order number zyada se zyada itni der mein tayyar
-     ho jana chahiye — warna local fallback use ho jata hai aur WhatsApp
-     redirect bilkul fast rehta hai. */
+     ho jana chahiye — warna local fallback use ho jata hai aur checkout
+     bilkul fast rehta hai. */
   const OVERALL_LIMIT = ORDER_SEQ_TIMEOUT + 1500; // ms
   const n = await Promise.race([
     globalOrderSeq(),
@@ -1508,100 +1352,14 @@ async function nextOrderNumber() {
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /* =========================================================
-   WhatsApp Order Confirmation
-   Auto-filled message — customer only has to press send.
+   ORDER EMAIL — har order FormSubmit ke zariye business Gmail
+   par automatically chala jata hai (WhatsApp order system
+   website se hata diya gaya hai).
    ========================================================= */
-const WHATSAPP_ORDER_NUMBER = '923706653839';
 
 function getCoValue(sel) {
   const el = document.querySelector(sel);
   return el ? String(el.value || '').trim() : '';
-}
-
-function buildWhatsAppOrderMessage(orderNumber, items) {
-  const subtotal = items.reduce((a, b) => a + b.qty * b.price, 0);
-
-  const lines = [];
-
-  /* Top par highlight — sirf LUCKY orders (NF0001–NF0020) par.
-     NF0021 se aage bilkul normal message, koi pre-order/lucky
-     wording nahi. WhatsApp mein font-size control nahi hota,
-     isliye letters phaila kar aur heavy lines se "bara" banaya. */
-  if (luckyTier(orderNumber)) {
-    lines.push('━━━━━━━━━━━━━━━━━━━━━━━');
-    lines.push('');
-    lines.push('*📣  P R E - O R D E R  📣*');
-    lines.push('');
-    lines.push('━━━━━━━━━━━━━━━━━━━━━━━');
-    lines.push('*North Fits — Pre-Order Booking*');
-    lines.push('');
-    lines.push('*Type:* Pre-Order (advance booking)');
-    lines.push('');
-    lines.push('👑 *V I P  P R E - O R D E R* 👑');
-    lines.push('You are one of the first *20 customers* — enjoy *VIP priority* on your pre-order, plus exclusive perks. Stay tuned on this chat!');
-    lines.push('');
-  } else {
-    lines.push('*NORTH FITS — NEW ORDER*');
-    lines.push('');
-  }
-
-  lines.push(`*Order No:* ${orderNumber}`);
-  lines.push('');
-  lines.push('*Customer:*');
-  lines.push(`Name: ${getCoValue('[data-co-name]')}`);
-  lines.push(`WhatsApp: ${getCoValue('[data-co-whatsapp]')}`);
-  lines.push(`Contact: ${getCoValue('[data-co-contact]')}`);
-  lines.push('');
-  lines.push('*Delivery Address:*');
-  lines.push(getCoValue('[data-co-address]'));
-  if (getCoValue('[data-co-landmark]')) lines.push(`Landmark: ${getCoValue('[data-co-landmark]')}`);
-  if (getCoValue('[data-co-postal]')) lines.push(`Postal Code: ${getCoValue('[data-co-postal]')}`);
-  const cityEl = document.querySelector('[data-co-city]');
-  lines.push(`City: ${CITIES[Number(cityEl?.value || 0)] || ''}`);
-  lines.push('');
-  lines.push('*Order Items:*');
-  items.forEach((it, i) => {
-    const detail = [it.size, it.colorName].filter(Boolean).join(' · ');
-    const label = detail ? `${it.name} (${detail})` : it.name;
-    lines.push(`${i + 1}. ${label} x${it.qty} — ${formatPrice(it.price * it.qty)}`);
-  });
-  lines.push('');
-  lines.push(`*Subtotal:* ${formatPrice(subtotal)}`);
-
-  /* Lucky members (NF0001–NF0020) ka 15% OFF — WhatsApp bill mein
-     bhi discount line + net total dikhao taake owner ko clear rahe */
-  const luckyBill = luckyTier(orderNumber);
-  const disc = luckyBill ? Math.round(subtotal * NF_LUCKY_DISCOUNT_PCT / 100) : 0;
-  const netBill = subtotal - disc;
-  if (luckyBill) {
-    lines.push(`*VIP Discount (15% off):* -${formatPrice(disc)}`);
-    lines.push(`*Net Total (after discount):* ${formatPrice(netBill)}`);
-  }
-  lines.push('');
-  if (luckyTier(orderNumber)) {
-    lines.push('👑 *VIP BONUS:* Exclusive priority on your pre-order — full details will be shared on this chat.');
-    lines.push('');
-    lines.push('✅ *This is a PRE-ORDER.* Your item will be reserved and delivered after the pre-order batch is confirmed.');
-    lines.push('Delivery charges will be confirmed on this chat.');
-  } else {
-    lines.push('Delivery charges will be confirmed on this chat.');
-  }
-
-  return lines.join('\n');
-}
-
-function openWhatsAppOrder(orderNumber, items) {
-  const text = encodeURIComponent(buildWhatsAppOrderMessage(orderNumber, items));
-  const url = `https://wa.me/${WHATSAPP_ORDER_NUMBER}?text=${text}`;
-
-  /* iPhone/Safari (aur kuch aur browsers) window.open() ko POPUP samajh kar
-     block kar dete hain jab wo user-click ke foran baad na ho — isi liye
-     pehle popup try karo; agar block ho (null) to poora page WhatsApp par
-     navigate ho jata hai, jo har device/browser par chalta hai. */
-  const win = window.open(url, '_blank');
-  if (win) return true;
-  window.location.href = url;
-  return false;
 }
 
 /* =========================================================
@@ -1613,12 +1371,9 @@ function openWhatsAppOrder(orderNumber, items) {
 
 function buildReceiptData(orderNumber, items) {
   const subtotal = items.reduce((a, b) => a + b.qty * b.price, 0);
-  const lucky = luckyTier(orderNumber);
-  const disc = lucky ? Math.round(subtotal * NF_LUCKY_DISCOUNT_PCT / 100) : 0;
   const cityEl = document.querySelector('[data-co-city]');
   return {
     orderNumber,
-    lucky,
     date: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
     customer: {
       name: getCoValue('[data-co-name]'),
@@ -1630,9 +1385,7 @@ function buildReceiptData(orderNumber, items) {
       city: CITIES[Number(cityEl && cityEl.value) || 0] || ''
     },
     items: items.map((it) => ({ ...it })),
-    subtotal,
-    disc,
-    net: subtotal - disc
+    subtotal
   };
 }
 
@@ -1661,14 +1414,13 @@ function buildReceiptPopup(d) {
             <div class="rc-ref">
               <small>Order Receipt</small>
               <strong>${d.orderNumber}</strong>
-              ${d.lucky ? '<em>VIP Pre-Order</em>' : ''}
             </div>
           </header>
 
           <div class="rc-body">
             <div class="rc-meta">
               <span><small>Date</small>${d.date}</span>
-              <span><small>Order Type</small>${d.lucky ? 'Pre-Order (VIP)' : 'Regular Order'}</span>
+              <span><small>Order Type</small>Regular Order</span>
             </div>
 
             <p class="rc-label">Customer Details</p>
@@ -1697,16 +1449,15 @@ function buildReceiptPopup(d) {
 
             <div class="rc-totals">
               <div class="rc-row"><span>Subtotal</span><b>${formatPrice(d.subtotal)}</b></div>
-              ${d.lucky ? `<div class="rc-row rc-discount"><span>VIP Discount (15% off)</span><b>-${formatPrice(d.disc)}</b></div>` : ''}
-              <div class="rc-row rc-total"><span>Total</span><b>${formatPrice(d.net)}</b></div>
+              <div class="rc-row rc-total"><span>Total</span><b>${formatPrice(d.subtotal)}</b></div>
             </div>
 
-            <p class="rc-note">Delivery charges will be shared &amp; submitted in advance after order confirmation from our team on WhatsApp.</p>
+            <p class="rc-note">Delivery charges will be confirmed by our team after order confirmation.</p>
           </div>
 
           <footer class="rc-foot">
             <h4>Thank You for Shopping with North Fits!</h4>
-            <p>Please wait for order confirmation on WhatsApp.</p>
+            <p>Your order has been received — our team will contact you for confirmation.</p>
             <div class="rc-social">
               <small>— Follow Us —</small>
               <a href="https://instagram.com/north._fits" target="_blank" rel="noopener noreferrer">Instagram · north._fits</a>
@@ -1718,11 +1469,10 @@ function buildReceiptPopup(d) {
         </div>
 
         <div class="rc-actions">
-          <button class="btn btn-ghost" data-rc-download>
+          <button class="btn btn-solid" data-rc-download>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5"/><path d="M4 19h16"/></svg>
             Download Receipt
           </button>
-          <button class="btn btn-solid" data-rc-wa>Send Order on WhatsApp</button>
         </div>
       </div>
     </div>`;
@@ -1749,16 +1499,6 @@ function buildReceiptPopup(d) {
     btn.disabled = false;
     btn.innerHTML = old;
   });
-  wrap.querySelector('[data-rc-wa]').addEventListener('click', () => {
-    const opened = openWhatsAppOrder(d.orderNumber, d.items);
-    if (opened) {
-      setTimeout(() => {
-        closeReceipt();
-        closeCheckout();
-        window.location.href = 'index.html';
-      }, 300);
-    }
-  });
 }
 
 function showReceiptPopup(d) {
@@ -1768,8 +1508,8 @@ function showReceiptPopup(d) {
   el.classList.add('open');
   document.body.style.overflow = 'hidden';
 
-  /* Har order automatically email par bhi bhejo — customer WhatsApp
-     na bhejey to bhi order email (salels.northfits@gmail.com) par aa jaye */
+  /* Har order automatically email par bhejo — business Gmail
+     (salels.northfits@gmail.com) par order aa jata hai */
   sendOrderEmail(d);
 }
 
@@ -1778,7 +1518,7 @@ function sendOrderEmail(d) {
   try {
     const lines = [];
     lines.push('Order No: ' + d.orderNumber);
-    lines.push('Order Type: ' + (d.lucky ? 'Pre-Order (VIP)' : 'Regular Order'));
+    lines.push('Order Type: Regular Order');
     lines.push('Date: ' + d.date);
     lines.push('');
     lines.push('Customer:');
@@ -1799,14 +1539,9 @@ function sendOrderEmail(d) {
     });
     lines.push('');
     lines.push('Subtotal: ' + formatPrice(d.subtotal));
-    if (d.lucky) {
-      lines.push('VIP Discount (15% off): -' + formatPrice(d.disc));
-      lines.push('Net Total (after discount): ' + formatPrice(d.net));
-    } else {
-      lines.push('Total: ' + formatPrice(d.net));
-    }
+    lines.push('Total: ' + formatPrice(d.subtotal));
     lines.push('');
-    lines.push('Delivery charges will be confirmed on WhatsApp.');
+    lines.push('Delivery charges will be confirmed by our team after order confirmation.');
 
     fetch('https://formsubmit.co/ajax/' + INQUIRY_EMAIL, {
       method: 'POST',
@@ -1817,7 +1552,7 @@ function sendOrderEmail(d) {
         _captcha: 'false',
         Order: lines.join('\n')
       })
-    }).catch(() => { /* email fail — WhatsApp phir bhi available hai */ });
+    }).catch(() => { /* email fail — receipt popup phir bhi order dikhata hai */ });
   } catch (e) { /* ignore */ }
 }
 
@@ -1921,7 +1656,6 @@ function renderReceiptToCanvas(ctx, d, logo, W) {
 
   text('ORDER RECEIPT', W - PAD, LY - 18, '600 11px Jost, Arial, sans-serif', GOLD, 'right');
   text(d.orderNumber, W - PAD, LY + 10, '600 25px Jost, Arial, sans-serif', '#ffffff', 'right');
-  if (d.lucky) text('VIP PRE-ORDER', W - PAD, LY + 32, '600 11px Jost, Arial, sans-serif', GOLD, 'right');
 
   /* Date / type */
   let y = HEAD_H + 34;
@@ -1929,7 +1663,7 @@ function renderReceiptToCanvas(ctx, d, logo, W) {
   text('ORDER TYPE', W - PAD, y, '600 10.5px Jost, Arial, sans-serif', MUTED, 'right');
   y += 16;
   text(d.date, PAD, y, '400 13.5px Jost, Arial, sans-serif', GREEN);
-  text(d.lucky ? 'Pre-Order (VIP)' : 'Regular Order', W - PAD, y, '400 13.5px Jost, Arial, sans-serif', GREEN, 'right');
+  text('Regular Order', W - PAD, y, '400 13.5px Jost, Arial, sans-serif', GREEN, 'right');
   y += 20;
   dash(y);
 
@@ -1976,12 +1710,11 @@ function renderReceiptToCanvas(ctx, d, logo, W) {
     y += strong ? 28 : 22;
   };
   trow('Subtotal', formatPrice(d.subtotal));
-  if (d.lucky) trow('VIP Discount (15% off)', '-' + formatPrice(d.disc));
   y += 2;
-  trow('TOTAL', formatPrice(d.net));
+  trow('TOTAL', formatPrice(d.subtotal));
 
   y += 8;
-  text('Delivery charges will be confirmed on WhatsApp.', W / 2, y, '400 12px Jost, Arial, sans-serif', MUTED, 'center');
+  text('Delivery charges will be confirmed by our team after order confirmation.', W / 2, y, '400 12px Jost, Arial, sans-serif', MUTED, 'center');
   y += 16;
   dash(y);
 
@@ -2000,7 +1733,7 @@ function renderReceiptToCanvas(ctx, d, logo, W) {
   ctx.fillRect(0, fY, W, y - fY);
 
   text('THANK YOU FOR SHOPPING WITH NORTH FITS!', W / 2, l1, '600 17px Jost, Arial, sans-serif', '#f6f1e6', 'center');
-  text('Please wait for order confirmation on WhatsApp.', W / 2, l2, '400 12.5px Jost, Arial, sans-serif', GOLD, 'center');
+  text('Your order has been received — our team will contact you.', W / 2, l2, '400 12.5px Jost, Arial, sans-serif', GOLD, 'center');
   text('— FOLLOW US —', W / 2, l3, '600 11px Jost, Arial, sans-serif', GOLD, 'center');
   ['Instagram  ·  north._fits', 'Facebook  ·  north.fits', 'TikTok  ·  north._fits', 'WhatsApp Channel  ·  NORTH FITS'].forEach((s, i) => {
     text(s, W / 2, sl[i], '400 13px Jost, Arial, sans-serif', '#f6f1e6', 'center');
@@ -2070,13 +1803,8 @@ async function completeOrder() {
     tickRefEl.style.display = 'block';
   }
 
-  /* Lucky (NF0001–NF0020) hone par success screen par lucky line —
-     actual order number se decide (peek fail ho to bhi theek rahe) */
-  const tickLuckyEl = document.querySelector('[data-co-tick-lucky]');
-  if (tickLuckyEl) tickLuckyEl.style.display = luckyTier(orderNumber) ? 'block' : 'none';
-
-  /* Cart pehle clear karo — agar popup block ho kar poora page WhatsApp
-     par navigate ho jaye to bhi cart reset rahe, resume-popup na aaye */
+  /* Cart yahin clear karo — receipt popup ke baad cart fresh rahe,
+     resume-popup na aaye */
   cartItems.clear();
   saveCart();
   updateCartUI();
@@ -2084,8 +1812,8 @@ async function completeOrder() {
   checkout.processing = false;
 
   /* 4. Tick ke saath hi FULL-SCREEN RECEIPT popup — customer info +
-        products + totals + Download option. WhatsApp par bhejna ab
-        receipt popup ke button se hota hai (customer khud send karta hai). */
+        products + totals + Download option. Order automatically
+        business Gmail par email ho jata hai. */
   await delay(900);
   const receiptData = buildReceiptData(orderNumber, orderItems);
   showReceiptPopup(receiptData);
