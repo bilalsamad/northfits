@@ -40,7 +40,7 @@ const NF_PRODUCTS = [
   {
     name: 'Signature Pintrest Baggy Trouser',
     category: 'Trousers',
-    price: 1100,
+    price: 1050,
     visual: 'visual-fabric',
     colors: [
       { name: 'Beige / Cream', hex: '#F5EFD6' },
