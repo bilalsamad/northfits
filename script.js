@@ -128,7 +128,7 @@ const backdropEl = document.querySelector('[data-cart-backdrop]');
 const cartListEl = document.querySelector('[data-cart-list]');
 const cartCountEl = document.querySelector('[data-cart-count]');
 const cartTotalEl = document.querySelector('[data-cart-total]');
-const toastEl = document.querySelector('[data-toast]');
+let toastEl = document.querySelector('[data-toast]');
 let toastTimer = null;
 
 function formatPrice(n) {
@@ -147,7 +147,12 @@ function updateCartUI() {
   const count = [...cartItems.values()].reduce((a, b) => a + b.qty, 0);
   const total = [...cartItems.values()].reduce((a, b) => a + b.qty * b.price, 0);
 
-  if (cartCountEl) cartCountEl.textContent = count;
+  if (cartCountEl) {
+    cartCountEl.textContent = count;
+    /* Khaali cart par badge chhupa rehta hai — number sirf tab dikhe
+       jab kuch add ho. */
+    cartCountEl.classList.toggle('is-empty', count === 0);
+  }
   if (cartTotalEl) cartTotalEl.textContent = formatPrice(total);
 
   if (cartListEl) {
@@ -195,8 +200,82 @@ function addToCart(index, opts = {}) {
   showToast(detail ? `${p.name} (${detail}) added to cart` : `${p.name} added to cart`);
 }
 
-function showToast(msg) {
-  if (!toastEl) return;
+/* ---------- Add-to-cart feedback (cart drawer khud NA khule) ----------
+   Product add hote hi ek chhoti si product photo button se ud kar cart
+   icon tak jati hai, cart icon halka bounce karta hai aur number pop
+   hota hai. Cart drawer sirf cart icon par click se khulta hai. */
+
+function popCartBadge() {
+  if (cartCountEl) {
+    cartCountEl.classList.remove('pop');
+    void cartCountEl.offsetWidth;
+    cartCountEl.classList.add('pop');
+  }
+  const cartBtn = document.querySelector('[data-cart-open]');
+  if (cartBtn) {
+    cartBtn.classList.remove('bump');
+    void cartBtn.offsetWidth;
+    cartBtn.classList.add('bump');
+    clearTimeout(cartBtn._bumpTimer);
+    cartBtn._bumpTimer = setTimeout(() => cartBtn.classList.remove('bump'), 800);
+  }
+}
+
+function flyToCart(sourceEl, imgSrc) {
+  const cartBtn = document.querySelector('[data-cart-open]');
+  if (!sourceEl || !cartBtn || typeof Element.prototype.animate !== 'function') {
+    popCartBadge();
+    return;
+  }
+
+  const from = sourceEl.getBoundingClientRect();
+  const to = cartBtn.getBoundingClientRect();
+  const size = 76;
+
+  const flyer = document.createElement('div');
+  flyer.className = 'fly-to-cart';
+  if (imgSrc) {
+    const img = document.createElement('img');
+    img.src = imgSrc;
+    img.alt = '';
+    flyer.appendChild(img);
+  }
+  flyer.style.width = size + 'px';
+  flyer.style.height = size + 'px';
+  flyer.style.left = (from.left + from.width / 2 - size / 2) + 'px';
+  flyer.style.top = (from.top + from.height / 2 - size / 2) + 'px';
+  document.body.appendChild(flyer);
+
+  const dx = (to.left + to.width / 2) - (from.left + from.width / 2);
+  const dy = (to.top + to.height / 2) - (from.top + from.height / 2);
+
+  const anim = flyer.animate([
+    { transform: 'translate(0px, 0px) scale(1)', opacity: 1 },
+    { transform: `translate(${dx * 0.5}px, ${dy * 0.4 - 70}px) scale(0.66)`, opacity: 1, offset: 0.55 },
+    { transform: `translate(${dx}px, ${dy}px) scale(0.14)`, opacity: 0.2 }
+  ], {
+    duration: 760,
+    easing: 'cubic-bezier(0.35, 0.05, 0.35, 1)'
+  });
+
+  const done = () => {
+    flyer.remove();
+    popCartBadge();
+  };
+  anim.onfinish = done;
+  anim.oncancel = () => flyer.remove();
+}
+
+function showToast(msg, type = 'success') {
+  /* Toast ka element HTML pages mein nahi hai — pehli dafa khud bana lo.
+     (Isse kisi page ki HTML chhedne ki zaroorat nahi.) */
+  if (!toastEl) {
+    toastEl = document.createElement('div');
+    toastEl.className = 'toast';
+    toastEl.setAttribute('data-toast', '');
+    document.body.appendChild(toastEl);
+  }
+  toastEl.dataset.type = type;
   toastEl.textContent = msg;
   toastEl.classList.add('show');
   clearTimeout(toastTimer);
@@ -435,19 +514,17 @@ document.addEventListener('click', (e) => {
     const p = PRODUCTS[qv.index];
     if (!p) return;
     const selColor = (p.colors && p.colors[qv.colorIdx]) || null;
+    const cmap = p.colorImages || {};
+    const colorImg = selColor ? (cmap[selColor.name] || cmap[selColor.hex] || '') : '';
+    const flyImg = colorImg || (p.images && p.images[0]) || '';
     addToCart(qv.index, { size: qv.size, colorName: selColor ? selColor.name : null, colorHex: selColor ? selColor.hex : null });
-    if (cartCountEl) {
-      cartCountEl.classList.remove('pop');
-      void cartCountEl.offsetWidth;
-      cartCountEl.classList.add('pop');
-    }
+    /* Product add → cart drawer NA kholo. Sirf photo cart tak udi aur
+       cart icon par number + animation. Drawer cart icon se khulega. */
+    flyToCart(qvAdd, flyImg);
     qvAdd.classList.remove('pop');
     void qvAdd.offsetWidth;
     qvAdd.classList.add('pop');
-    setTimeout(() => {
-      closeQuickView();
-      openCart();
-    }, 420);
+    setTimeout(() => closeQuickView(), 300);
     return;
   }
 
@@ -1251,7 +1328,7 @@ function nextCoStep() {
 
 function openCheckout() {
   if (cartItems.size === 0) {
-    showToast('Your cart is empty.');
+    showToast('Your cart is empty.', 'error');
     return;
   }
   ensureAudio();
@@ -1538,7 +1615,7 @@ function buildReceiptPopup(d) {
       a.click();
       a.remove();
     } catch (err) {
-      showToast('Could not download the receipt — please try again.');
+      showToast('Could not download the receipt — please try again.', 'error');
     }
     btn.disabled = false;
     btn.innerHTML = old;
