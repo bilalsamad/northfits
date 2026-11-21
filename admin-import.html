@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>North Fits — Admin Dashboard</title>
+  <style>
+    :root{color-scheme:dark;--bg:#10110f;--panel:#1b1d19;--panel2:#242720;--line:#383c33;--text:#f5f3ec;--muted:#aaaFA3;--accent:#d9e2c2;--danger:#e58d83}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Arial,sans-serif}
+    button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:8px;padding:11px 15px;background:var(--accent);color:#151711;font-weight:700}
+    button.secondary{background:#30352c;color:var(--text);border:1px solid var(--line)}button.danger{background:#542b28;color:#ffe9e6;border:1px solid #81433d}button:disabled{opacity:.5;cursor:not-allowed}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 4vw;border-bottom:1px solid var(--line);position:sticky;top:0;background:#10110fee;backdrop-filter:blur(12px);z-index:2}
+    .brand{font-weight:800;letter-spacing:3px}.sub{color:var(--muted);font-size:12px}.wrap{max-width:1250px;margin:28px auto;padding:0 20px}.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}.bar h1{font-size:25px;margin:0}.actions{display:flex;gap:9px;flex-wrap:wrap}
+    .notice{padding:12px 15px;border:1px solid var(--line);border-radius:9px;color:var(--muted);margin:0 0 18px}.notice.error{color:#ffd0ca;border-color:#81433d}.notice.success{color:#d9efc9;border-color:#526844}
+    .layout{display:grid;grid-template-columns:minmax(300px,420px) minmax(0,1fr);gap:20px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:20px}.panel h2{font-size:17px;margin:0 0 16px}.field{margin-bottom:13px}.field label{display:block;font-size:12px;color:var(--muted);margin:0 0 6px}.field input,.field select,.field textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:10px 11px;color:var(--text);outline:none}.field textarea{min-height:75px;resize:vertical;font-family:ui-monospace,monospace;font-size:12px}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.checkrow{display:flex;align-items:center;gap:9px;margin:8px 0 14px;color:var(--muted);font-size:13px}.checkrow input{width:auto}.form-actions{display:flex;gap:9px;flex-wrap:wrap}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:520px}th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);font-weight:600}td.name{font-weight:700}.pill{display:inline-block;padding:3px 8px;border-radius:20px;background:#30352c;color:#dce5d0;font-size:11px}.row-actions{display:flex;gap:6px}.row-actions button{padding:7px 10px;font-size:12px}.empty{text-align:center;color:var(--muted);padding:35px 10px}.hint{font-size:11px;color:var(--muted);margin-top:5px}
+    @media(max-width:850px){.layout{grid-template-columns:1fr}.top{padding:15px 20px}.wrap{margin:20px auto}.panel{padding:16px}}
+  </style>
+</head>
+<body>
+  <header class="top"><div><div class="brand">NORTH FITS</div><div class="sub">PRODUCT MANAGEMENT</div></div><div class="actions"><span id="adminEmail" class="sub" style="align-self:center"></span><button id="logoutBtn" class="secondary" type="button">Log out</button></div></header>
+  <main class="wrap">
+    <div class="bar"><div><h1>Products</h1><div class="sub">Add, edit or remove products from your Supabase catalogue.</div></div><div class="actions"><button id="newBtn" type="button">+ Add product</button><button id="refreshBtn" class="secondary" type="button">Refresh</button></div></div>
+    <div id="status" class="notice">Checking admin access…</div>
+    <div class="layout">
+      <section class="panel" id="editorPanel">
+        <h2 id="formTitle">Add new product</h2>
+        <form id="productForm">
+          <input type="hidden" id="productId">
+          <div class="field"><label for="name">Product name *</label><input id="name" required maxlength="180" placeholder="Product name"></div>
+          <div class="two">
+            <div class="field"><label for="category">Category *</label><input id="category" required placeholder="Trousers / Outfit"></div>
+            <div class="field"><label for="price">Price (Rs.) *</label><input id="price" type="number" min="0" step="0.01" required></div>
+          </div>
+          <div class="two">
+            <div class="field"><label for="oldPrice">Old price (optional)</label><input id="oldPrice" type="number" min="0" step="0.01"></div>
+            <div class="field"><label for="stock">Stock quantity</label><input id="stock" type="number" min="0" step="1" value="0"></div>
+          </div>
+          <div class="field"><label for="desc">Description</label><textarea id="desc" placeholder="Product description"></textarea></div>
+          <div class="field"><label for="sizes">Sizes (comma separated)</label><input id="sizes" placeholder="M, L, XL"></div>
+          <div class="field"><label for="colors">Colors — JSON format</label><textarea id="colors" spellcheck="false" placeholder='[{"name":"Black","hex":"#000000"}]'></textarea><div class="hint">Example: [{"name":"Black","hex":"#000000"}]</div></div>
+          <div class="field"><label for="images">Image paths/URLs (comma separated)</label><textarea id="images" placeholder="uploads/product-1.jpg, uploads/product-2.jpg"></textarea><div class="hint">Upload photos to your existing uploads folder; enter their paths here.</div></div>
+          <div class="field"><label for="colorImages">Color-wise images — JSON format (optional)</label><textarea id="colorImages" spellcheck="false" placeholder='{"Black":"uploads/black.jpg"}'></textarea></div>
+          <div class="two">
+            <div class="field"><label for="badgeLabel">Badge label</label><input id="badgeLabel" placeholder="Hot"></div>
+            <div class="field"><label for="badgeType">Badge type</label><select id="badgeType"><option value="">None</option><option value="new">New</option><option value="hot">Hot</option></select></div>
+          </div>
+          <div class="field"><label for="insta">Instagram post URL (optional)</label><input id="insta" type="url" placeholder="https://www.instagram.com/p/..."></div>
+          <div class="field"><label for="locations">Show on pages (comma separated)</label><input id="locations" placeholder="new, trousers, collections"></div>
+          <div class="field"><label for="visual">Visual class</label><input id="visual" value="visual-fabric" placeholder="visual-fabric"></div>
+          <label class="checkrow"><input id="isNew" type="checkbox"> Mark as new product</label>
+          <label class="checkrow"><input id="isActive" type="checkbox" checked> Active (visible on storefront)</label>
+          <div class="form-actions"><button id="saveBtn" type="submit">Save product</button><button id="cancelBtn" type="button" class="secondary">Clear form</button></div>
+        </form>
+      </section>
+      <section class="panel">
+        <h2>Product catalogue <span id="productCount" class="pill">0</span></h2>
+        <div class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody id="productRows"><tr><td colspan="5" class="empty">Loading products…</td></tr></tbody></table></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let currentProducts = [];
+    let isReady = false;
+
+    function setStatus(message, type = '') {
+      const el = $('status');
+      el.textContent = message;
+      el.className = 'notice' + (type ? ' ' + type : '');
+    }
+    function splitList(value) {
+      return value.split(',').map(v => v.trim()).filter(Boolean);
+    }
+    function parseJsonField(value, label, fallback) {
+      if (!value.trim()) return fallback;
+      try { return JSON.parse(value); }
+      catch { throw new Error(label + ' ka JSON valid nahi hai.'); }
+    }
+    function formatRs(value) {
+      return 'Rs. ' + Number(value || 0).toLocaleString('en-PK');
+    }
+    function resetForm() {
+      $('productForm').reset();
+      $('productId').value = '';
+      $('stock').value = '0';
+      $('visual').value = 'visual-fabric';
+      $('isActive').checked = true;
+      $('formTitle').textContent = 'Add new product';
+      $('saveBtn').textContent = 'Save product';
+    }
+    function detailsFromForm() {
+      const details = {
+        name: $('name').value.trim(),
+        category: $('category').value.trim(),
+        price: Number($('price').value),
+        desc: $('desc').value.trim(),
+        sizes: splitList($('sizes').value),
+        colors: parseJsonField($('colors').value, 'Colors', []),
+        images: splitList($('images').value),
+        visual: $('visual').value.trim() || 'visual-fabric',
+        new: $('isNew').checked,
+        insta: $('insta').value.trim(),
+        locations: splitList($('locations').value)
+      };
+      if ($('oldPrice').value !== '') details.oldPrice = Number($('oldPrice').value);
+      if ($('badgeLabel').value.trim()) {
+        details.badge = { label: $('badgeLabel').value.trim(), type: $('badgeType').value || 'hot' };
+      }
+      const colorImages = parseJsonField($('colorImages').value, 'Color-wise images', {});
+      if (Object.keys(colorImages).length) details.colorImages = colorImages;
+      return details;
+    }
+    function fillForm(row) {
+      const d = row.details && typeof row.details === 'object' ? row.details : {};
+      $('productId').value = row.id;
+      $('name').value = row.name || d.name || '';
+      $('category').value = row.category || d.category || '';
+      $('price').value = row.price ?? d.price ?? '';
+      $('oldPrice').value = d.oldPrice ?? '';
+      $('stock').value = row.stock ?? 0;
+      $('desc').value = row.description || d.desc || '';
+      $('sizes').value = Array.isArray(d.sizes) ? d.sizes.join(', ') : '';
+      $('colors').value = JSON.stringify(Array.isArray(d.colors) ? d.colors : [], null, 2);
+      $('images').value = Array.isArray(d.images) ? d.images.join(', ') : (row.image_url || '');
+      $('colorImages').value = JSON.stringify(d.colorImages || {}, null, 2);
+      $('badgeLabel').value = d.badge?.label || '';
+      $('badgeType').value = d.badge?.type || '';
+      $('insta').value = d.insta || '';
+      $('locations').value = Array.isArray(d.locations) ? d.locations.join(', ') : '';
+      $('visual').value = d.visual || 'visual-fabric';
+      $('isNew').checked = !!d.new;
+      $('isActive').checked = row.is_active !== false;
+      $('formTitle').textContent = 'Edit product';
+      $('saveBtn').textContent = 'Update product';
+      $('editorPanel').scrollIntoView({behavior:'smooth', block:'start'});
+    }
+    function renderRows() {
+      $('productCount').textContent = currentProducts.length;
+      const tbody = $('productRows');
+      if (!currentProducts.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty">No products found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = currentProducts.map(row => `
+        <tr>
+          <td class="name">${escapeHtml(row.name || 'Untitled')}</td>
+          <td>${escapeHtml(row.category || '—')}</td>
+          <td>${formatRs(row.price)}</td>
+          <td><span class="pill">${row.is_active ? 'Active' : 'Hidden'}</span></td>
+          <td><div class="row-actions"><button class="secondary" type="button" data-edit="${escapeHtml(String(row.id))}">Edit</button><button class="danger" type="button" data-delete="${escapeHtml(String(row.id))}">Delete</button></div></td>
+        </tr>`).join('');
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    }
+    async function loadProducts() {
+      setStatus('Loading products…');
+      const { data, error } = await supabaseClient.from('products').select('*').order('created_at', {ascending:false});
+      if (error) throw error;
+      currentProducts = data || [];
+      renderRows();
+      setStatus(currentProducts.length + ' products loaded from Supabase.', 'success');
+    }
+    async function init() {
+      try {
+        if (typeof supabaseClient === 'undefined') throw new Error('Supabase client nahi mila. supabase-config.js check karo.');
+       const { data, error } = await supabaseClient.auth.getUser();
+
+if (error || !data.user) {
+  window.location.href = 'admin.html';
+  return;
+}
+
+const { data: isAdmin, error: roleError } =
+  await supabaseClient.rpc('is_admin');
+
+if (roleError || !isAdmin) {
+  await supabaseClient.auth.signOut();
+  window.location.href = 'admin.html';
+  return;
+}
+        $('adminEmail').textContent = data.user.email || 'Admin';
+        await loadProducts();
+        isReady = true;
+      } catch (error) {
+        setStatus('Error: ' + error.message, 'error');
+      }
+    }
+    $('productForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!isReady) return;
+      $('saveBtn').disabled = true;
+      try {
+        const details = detailsFromForm();
+        if (!details.name || !details.category || !Number.isFinite(details.price)) throw new Error('Name, category aur valid price zaroori hain.');
+        if (!Array.isArray(details.colors) || !Array.isArray(details.sizes) || !Array.isArray(details.images)) throw new Error('Colors, sizes aur images ka format check karo.');
+        const payload = {
+          name: details.name,
+          description: details.desc || null,
+          price: details.price,
+          category: details.category,
+          image_url: details.images[0] || null,
+          stock: Math.max(0, parseInt($('stock').value || '0', 10)),
+          is_active: $('isActive').checked,
+          details
+        };
+        const id = $('productId').value;
+        let result;
+        if (id) {
+          result = await supabaseClient.from('products').update(payload).eq('id', id).select().single();
+        } else {
+          result = await supabaseClient.from('products').insert(payload).select().single();
+        }
+        if (result.error) throw result.error;
+        setStatus(id ? 'Product updated successfully.' : 'Product added successfully.', 'success');
+        resetForm();
+        await loadProducts();
+      } catch (error) {
+        setStatus('Save failed: ' + error.message, 'error');
+      } finally {
+        $('saveBtn').disabled = false;
+      }
+    });
+    $('productRows').addEventListener('click', async (event) => {
+      const editButton = event.target.closest('[data-edit]');
+      const deleteButton = event.target.closest('[data-delete]');
+      if (editButton) {
+        const row = currentProducts.find(p => String(p.id) === editButton.dataset.edit);
+        if (row) fillForm(row);
+      }
+      if (deleteButton) {
+        const row = currentProducts.find(p => String(p.id) === deleteButton.dataset.delete);
+        if (!row || !confirm('Delete "' + row.name + '" permanently?')) return;
+        deleteButton.disabled = true;
+        try {
+          const { error } = await supabaseClient.from('products').delete().eq('id', row.id);
+          if (error) throw error;
+          setStatus('Product deleted.', 'success');
+          await loadProducts();
+        } catch (error) {
+          setStatus('Delete failed: ' + error.message, 'error');
+          deleteButton.disabled = false;
+        }
+      }
+    });
+    $('newBtn').addEventListener('click', () => { resetForm(); $('editorPanel').scrollIntoView({behavior:'smooth'}); });
+    $('cancelBtn').addEventListener('click', resetForm);
+    $('refreshBtn').addEventListener('click', () => loadProducts().catch(e => setStatus('Refresh failed: ' + e.message, 'error')));
+    $('logoutBtn').addEventListener('click', async () => {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) setStatus('Logout failed: ' + error.message, 'error');
+      else window.location.href = 'admin.html';
+    });
+    init();
+  </script>
+</body>
+</html>
