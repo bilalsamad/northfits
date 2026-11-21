@@ -1,13 +1,71 @@
-/* =========================================================
-   NORTH FITS — Interactions
-   ========================================================= */
 
-/* Products ab "products.js" se aate hain — woh file khol kar apne
-   products add/change karo (koi admin panel ya backend nahi hai). */
-const PRODUCTS =
+let PRODUCTS =
   (typeof NF_PRODUCTS !== 'undefined' && Array.isArray(NF_PRODUCTS))
     ? NF_PRODUCTS
     : [];
+
+/*
+ * Supabase product loader:
+ * Local products.js remains a fallback. Once Supabase responds,
+ * the database becomes the source for the storefront.
+ */
+async function loadProductsFromSupabase() {
+  if (typeof supabaseClient === 'undefined') {
+    console.warn('Supabase client not found; using products.js fallback.');
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from('products')
+    .select('id, name, description, price, category, image_url, stock, is_active, details, created_at')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Could not load products from Supabase; using products.js fallback:', error.message);
+    return;
+  }
+
+  if (!Array.isArray(data)) {
+    console.warn('Supabase returned an unexpected products response; using products.js fallback.');
+    return;
+  }
+
+  PRODUCTS = data.map((row) => {
+    const details = row.details && typeof row.details === 'object'
+      ? row.details
+      : {};
+
+    const detailImages = Array.isArray(details.images)
+      ? details.images.filter(Boolean)
+      : [];
+
+    return {
+      ...details,
+      id: row.id,
+      name: row.name || details.name || 'Untitled product',
+      category: row.category || details.category || '',
+      price: Number(row.price ?? details.price ?? 0),
+      desc: row.description || details.desc || '',
+      images: detailImages.length
+        ? detailImages
+        : (row.image_url ? [row.image_url] : []),
+      visual: details.visual || 'visual-fabric'
+    };
+  });
+
+  console.log(`Loaded ${PRODUCTS.length} active products from Supabase.`);
+
+  // Rebuild the storefront using the database records.
+  renderProductGrids();
+
+  // If the search panel is already open with a query, refresh its results too.
+  document.querySelectorAll('[data-search-input]').forEach((input) => {
+    if (input.value.trim()) {
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+}
 
 const SIZES = {
   Trousers: ['28', '30', '32', '34', '36'],
@@ -113,6 +171,9 @@ function renderProductGrids() {
   });
 }
 renderProductGrids();
+
+// Load the latest active product catalogue from Supabase.
+loadProductsFromSupabase();
 
 /* autoco (test/demo) support — neeche file ke end mein bind hota hai
    (yahan nahi: tab tak cartItems/checkout define nahi hote = TDZ error) */
